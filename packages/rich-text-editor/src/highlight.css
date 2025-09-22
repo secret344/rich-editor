@@ -1,0 +1,47 @@
+/* Highlight.js 代码高亮样式 */
+@import 'highlight.js/styles/github.css';
+
+/* 自定义代码块样式 */
+.hljs {
+  background: #f6f8fa !important;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+/* 代码块容器样式 */
+pre.hljs {
+  margin: 0;
+  background: #f6f8fa !important;
+}
+
+/* 行号样式（如果需要） */
+.hljs-ln-numbers {
+  text-align: right;
+  color: #999;
+  border-right: 1px solid #ddd;
+  padding-right: 0.5rem;
+  margin-right: 0.5rem;
+}
+
+/* 确保代码块在编辑器中的样式一致性 */
+.rich-text-editor pre {
+  background: #f6f8fa;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  border: 1px solid #e1e4e8;
+}
+
+.rich-text-editor pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}

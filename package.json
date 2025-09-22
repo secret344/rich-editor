@@ -1,0 +1,29 @@
+{
+  "name": "my-editor-workspace",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "dev:editor": "cd packages/rich-text-editor && npm run dev",
+    "build:editor": "cd packages/rich-text-editor && npm run build",
+    "install:all": "npm install && npm run install:editor",
+    "install:editor": "cd packages/rich-text-editor && npm install"
+  },
+  "dependencies": {
+    "@my-editor/rich-text-editor": "workspace:*",
+    "@tailwindcss/typography": "^0.5.16",
+    "vue": "^3.5.21"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.13",
+    "@vitejs/plugin-vue": "^5.2.0",
+    "tailwindcss": "^4.1.13",
+    "vite": "^6.0.0"
+  }
+}

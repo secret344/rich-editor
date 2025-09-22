@@ -1,0 +1,102 @@
+@import "tailwindcss" prefix(rich);
+@import './highlight.css';
+
+/* 富文本编辑器样式 */
+.rich-text-editor {
+  @apply rich:bg-white rich:rounded-lg rich:shadow-lg rich:overflow-hidden;
+}
+
+.rich-text-editor .text-editor {
+  @apply rich:min-h-96 rich:p-4;
+}
+
+.rich-text-editor .text-editor:focus {
+  @apply rich:outline-none;
+}
+
+
+
+/* 编辑器内容样式 */
+.rich-text-editor .ProseMirror {
+  @apply rich:outline-none;
+}
+
+.rich-text-editor .ProseMirror p {
+  @apply rich:mb-2;
+}
+
+.rich-text-editor .ProseMirror h1 {
+  @apply rich:text-3xl rich:font-bold rich:mb-4;
+}
+
+.rich-text-editor .ProseMirror h2 {
+  @apply rich:text-2xl rich:font-bold rich:mb-3;
+}
+
+.rich-text-editor .ProseMirror h3 {
+  @apply rich:text-xl rich:font-bold rich:mb-2;
+}
+
+.rich-text-editor .ProseMirror h4 {
+  @apply rich:text-lg rich:font-bold rich:mb-2;
+}
+
+.rich-text-editor .ProseMirror h5 {
+  @apply rich:text-base rich:font-bold rich:mb-2;
+}
+
+.rich-text-editor .ProseMirror h6 {
+  @apply rich:text-sm rich:font-bold rich:mb-2;
+}
+
+.rich-text-editor .ProseMirror ul {
+  @apply rich:list-disc rich:mb-2 rich:pl-4;
+}
+
+.rich-text-editor .ProseMirror ol {
+  @apply rich:list-decimal rich:mb-2 rich:pl-4;
+}
+
+.rich-text-editor .ProseMirror blockquote {
+  @apply rich:border-l-4 rich:border-gray-300 rich:pl-4 rich:mb-2;
+}
+
+.rich-text-editor .ProseMirror code {
+  @apply rich:bg-gray-100 rich:px-1 rich:py-0.5 rich:rounded rich:text-sm rich:font-mono;
+}
+
+.rich-text-editor .ProseMirror pre {
+  @apply rich:bg-gray-100 rich:p-4 rich:rounded rich:mb-2 rich:overflow-x-auto;
+}
+
+.rich-text-editor .ProseMirror pre code {
+  @apply rich:bg-transparent rich:p-0;
+}
+
+.rich-text-editor .ProseMirror a {
+  @apply rich:text-blue-600 rich:underline rich:hover:text-blue-800;
+}
+
+.rich-text-editor .ProseMirror img {
+  @apply rich:max-w-full rich:rounded-lg;
+}
+
+.rich-text-editor .ProseMirror table {
+  @apply rich:border-collapse rich:border rich:border-gray-300 rich:w-full rich:mb-2;
+}
+
+.rich-text-editor .ProseMirror th,
+.rich-text-editor .ProseMirror td {
+  @apply rich:border rich:border-gray-300 rich:px-2 rich:py-1;
+}
+
+.rich-text-editor .ProseMirror th {
+  @apply rich:bg-gray-100 rich:font-semibold;
+}
+
+
+
+/* 高亮样式 */
+.rich-text-editor .ProseMirror mark {
+  @apply rich:px-1 rich:rounded;
+}

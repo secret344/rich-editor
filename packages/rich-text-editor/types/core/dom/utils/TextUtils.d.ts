@@ -1,0 +1,30 @@
+export declare class TextUtils {
+    static setText(element: HTMLElement, text: string): void;
+    static getText(element: HTMLElement): string;
+    static setHTML(element: HTMLElement, html: string): void;
+    static getHTML(element: HTMLElement): string;
+    static appendText(element: HTMLElement, text: string): void;
+    static appendHTML(element: HTMLElement, html: string): void;
+    static prependText(element: HTMLElement, text: string): void;
+    static prependHTML(element: HTMLElement, html: string): void;
+    static clearText(element: HTMLElement): void;
+    static clearHTML(element: HTMLElement): void;
+    static setValue(element: HTMLInputElement | HTMLTextAreaElement, value: string): void;
+    static getValue(element: HTMLInputElement | HTMLTextAreaElement): string;
+    static setPlaceholder(element: HTMLInputElement | HTMLTextAreaElement, placeholder: string): void;
+    static getPlaceholder(element: HTMLInputElement | HTMLTextAreaElement): string;
+    static isEmpty(element: HTMLElement): boolean;
+    static isHTMLEmpty(element: HTMLElement): boolean;
+    static getTextLength(element: HTMLElement): number;
+    static truncateText(element: HTMLElement, maxLength: number, suffix?: string): void;
+    static setTitle(element: HTMLElement, title: string): void;
+    static getTitle(element: HTMLElement): string;
+    static setAriaLabel(element: HTMLElement, label: string): void;
+    static getAriaLabel(element: HTMLElement): string;
+    static setData(element: HTMLElement, key: string, value: string): void;
+    static getData(element: HTMLElement, key: string): string;
+    static setAttribute(element: HTMLElement, name: string, value: string): void;
+    static getAttribute(element: HTMLElement, name: string): string;
+    static removeAttribute(element: HTMLElement, name: string): void;
+    static hasAttribute(element: HTMLElement, name: string): boolean;
+}
