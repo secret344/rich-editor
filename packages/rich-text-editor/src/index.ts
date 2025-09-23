@@ -1,4 +1,3 @@
-// 导入样式文件
 import './styles.css'
 
 // 核心编辑器

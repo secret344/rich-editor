@@ -1,1 +1,0 @@
-export { ColorMenu } from './ColorMenu';

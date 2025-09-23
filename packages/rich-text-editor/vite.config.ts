@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
+import babel from "@rollup/plugin-babel";
 import dts from "vite-plugin-dts";
 
 export default defineConfig(({ mode }) => {
@@ -13,7 +14,7 @@ export default defineConfig(({ mode }) => {
         compilerOptions: {
           skipDiagnostics: false,
           logDiagnostics: true,
-        }
+        },
       }),
     ],
     resolve: {
@@ -23,6 +24,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       sourcemap: mode === "development",
+      target: ["es2015"],
       lib: {
         entry: "src/index.ts",
         name: "RichTextEditor",
@@ -31,7 +33,7 @@ export default defineConfig(({ mode }) => {
       },
       outDir: "dist",
       copyPublicDir: false,
-      minify: "esbuild" as const,
+      minify: "terser",
       cssMinify: true,
       rollupOptions: {
         output: [
@@ -72,6 +74,25 @@ export default defineConfig(({ mode }) => {
           "@tiptap/extension-text-style",
           "@tiptap/extension-underline",
           "@tiptap/pm",
+        ],
+        plugins: [
+          babel({
+            extensions: [".js", ".ts", ".vue"],
+            babelHelpers: "runtime",
+            plugins: ["@babel/plugin-transform-runtime"],
+            presets: [
+              [
+                "@babel/preset-env",
+                {
+                  useBuiltIns: "usage",
+                  targets: {
+                    browsers: ["last 2 versions", "> 1%", "not ie <= 11"],
+                  },
+                  corejs: 3,
+                },
+              ],
+            ],
+          }),
         ],
       },
     },
