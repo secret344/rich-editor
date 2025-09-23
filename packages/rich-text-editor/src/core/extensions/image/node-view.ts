@@ -31,6 +31,7 @@ export default function NodeView(): NodeViewRenderer {
       attributes: {
         src: node.attrs.src,
         alt: node.attrs.alt || "",
+        title: node.attrs.title || "",
         draggable: "false",
       },
     }) as HTMLImageElement;

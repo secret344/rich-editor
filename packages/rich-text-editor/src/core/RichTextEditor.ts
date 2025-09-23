@@ -221,10 +221,10 @@ export class RichTextEditor {
         }),
         TextStyle,
         FontSize.configure({
-          types: ['textStyle'],
+          types: ["textStyle"],
         }),
         LineHeight.configure({
-          types: ['textStyle'],
+          types: ["textStyle"],
         }),
         Color.configure({
           types: ["textStyle"],
@@ -280,7 +280,7 @@ export class RichTextEditor {
             "image/webp",
           ],
           onDrop: (_currentEditor, files, pos) => {
-                // 处理文件上传
+            // 处理文件上传
             files.forEach((file) => {
               if (file.type.startsWith("image/")) {
                 this.handleImageFile(file, pos);
@@ -394,7 +394,9 @@ export class RichTextEditor {
   setText(text: string): void {
     this.editor.commands.setContent(text);
   }
-
+  getJSON() {
+    return this.editor.getJSON();
+  }
   clear(): void {
     this.editor.commands.clearContent();
   }
