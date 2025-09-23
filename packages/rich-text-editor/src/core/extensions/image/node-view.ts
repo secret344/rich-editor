@@ -66,6 +66,12 @@ export default function NodeView(): NodeViewRenderer {
     let startY = 0;
     let startWidth = 0;
     let startHeight = 0;
+    
+    // 保存拖拽事件处理器引用，用于正确清理
+    let dragMouseMoveHandler: EventListener | null = null;
+    let dragMouseUpHandler: EventListener | null = null;
+    let dragTouchMoveHandler: EventListener | null = null;
+    let dragTouchEndHandler: EventListener | null = null;
 
     // 手柄配置
     const handleConfigs: ResizeHandle[] = [
@@ -179,21 +185,17 @@ export default function NodeView(): NodeViewRenderer {
       startWidth = rect.width;
       startHeight = rect.height;
 
-      eventManager.addEventListener(document, "mousemove", (e) =>
-        handleMouseMove(e as MouseEvent)
-      );
-      eventManager.addEventListener(document, "mouseup", (e) =>
-        handleMouseUp(e as MouseEvent)
-      );
-      eventManager.addEventListener(
-        document,
-        "touchmove",
-        (e) => handleTouchMove(e as TouchEvent),
-        { passive: false }
-      );
-      eventManager.addEventListener(document, "touchend", (e) =>
-        handleTouchEnd(e as TouchEvent)
-      );
+      // 创建并保存事件处理器引用
+      dragMouseMoveHandler = (e: Event) => handleMouseMove(e as MouseEvent);
+      dragMouseUpHandler = (e: Event) => handleMouseUp(e as MouseEvent);
+      dragTouchMoveHandler = (e: Event) => handleTouchMove(e as TouchEvent);
+      dragTouchEndHandler = (e: Event) => handleTouchEnd(e as TouchEvent);
+
+      // 添加事件监听器
+      eventManager.addEventListener(document, "mousemove", dragMouseMoveHandler);
+      eventManager.addEventListener(document, "mouseup", dragMouseUpHandler);
+      eventManager.addEventListener(document, "touchmove", dragTouchMoveHandler, { passive: false });
+      eventManager.addEventListener(document, "touchend", dragTouchEndHandler);
 
       StyleUtils.setStyle(
         document.body,
@@ -375,7 +377,24 @@ export default function NodeView(): NodeViewRenderer {
       isResizing = false;
       currentHandle = null;
 
-      // 事件会在 destroy 时统一清理，这里不需要单独移除
+      // 立即清理拖拽相关的事件监听器
+      if (dragMouseMoveHandler) {
+        eventManager.removeEventListener(document, "mousemove", dragMouseMoveHandler);
+        dragMouseMoveHandler = null;
+      }
+      if (dragMouseUpHandler) {
+        eventManager.removeEventListener(document, "mouseup", dragMouseUpHandler);
+        dragMouseUpHandler = null;
+      }
+      if (dragTouchMoveHandler) {
+        eventManager.removeEventListener(document, "touchmove", dragTouchMoveHandler);
+        dragTouchMoveHandler = null;
+      }
+      if (dragTouchEndHandler) {
+        eventManager.removeEventListener(document, "touchend", dragTouchEndHandler);
+        dragTouchEndHandler = null;
+      }
+
       StyleUtils.setStyle(document.body, "cursor", "");
       StyleUtils.setStyle(document.body, "userSelect", "");
     };
