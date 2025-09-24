@@ -58,7 +58,6 @@ export class LineHeightMenu implements StateUpdatable {
         label: '默认',
         onClick: () => {
           this.editor.chain().focus().unsetLineHeight().run()
-          this.updateState()
         },
         active: () => false
       },
@@ -67,7 +66,6 @@ export class LineHeightMenu implements StateUpdatable {
         label: lineHeight.label,
         onClick: () => {
           this.editor.chain().focus().setLineHeight(lineHeight.height).run()
-          this.updateState()
         },
         active: () => this.editor.getAttributes('textStyle').lineHeight === lineHeight.height
       }))

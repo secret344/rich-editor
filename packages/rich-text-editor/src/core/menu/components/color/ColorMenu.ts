@@ -1,27 +1,36 @@
 import { Editor } from '@tiptap/core'
 import { EventManager } from '@/utils/EventManager'
+import { StateManager, type StateUpdatable } from '@/utils/StateManager'
 import { ContainerUtils, ButtonUtils, type ButtonInstance, ColorPicker, ElementUtils, StyleUtils, TextUtils } from '@/core/dom'
 
-export class ColorMenu {
+export class ColorMenu implements StateUpdatable {
   private editor: Editor
   private eventManager: EventManager
   private container: HTMLElement
   private textColorPicker: ColorPicker | null = null
   private highlightColorPicker: ColorPicker | null = null
+  private backgroundColorPicker: ColorPicker | null = null
   private editorRoot: HTMLElement
   private textColorButton: HTMLElement | null = null
   private highlightColorButton: HTMLElement | null = null
+  private backgroundColorButton: HTMLElement | null = null
   private textColorButtonInstance: ButtonInstance | null = null
   private highlightColorButtonInstance: ButtonInstance | null = null
+  private backgroundColorButtonInstance: ButtonInstance | null = null
   private textColorDisplay: HTMLElement | null = null
   private highlightColorDisplay: HTMLElement | null = null
+  private backgroundColorDisplay: HTMLElement | null = null
   private editorEventCleanup: (() => void)[] = []
 
-  constructor(container: HTMLElement, editor: Editor, eventManager: EventManager, editorRoot: HTMLElement) {
-    this.container = container
+  constructor(editor: Editor, eventManager: EventManager,  editorRoot: HTMLElement) {
     this.editor = editor
     this.eventManager = eventManager
     this.editorRoot = editorRoot
+    this.container = ContainerUtils.createContainer()
+    
+    // 注册到状态管理器
+  StateManager.getInstance().register(this)
+    
     this.render()
     this.initializePickers()
   }
@@ -68,29 +77,26 @@ export class ColorMenu {
       ElementUtils.appendChild(this.highlightColorButton, this.highlightColorDisplay)
       ElementUtils.appendChild(menuContainer, this.highlightColorButton)
     }
+
+    // 背景颜色按钮（使用带状态管理的版本）
+    this.backgroundColorButtonInstance = ButtonUtils.createIconButtonWithState({
+      id: 'background-color',
+      icon: '🎨',
+      title: '背景颜色',
+      onClick: (event) => this.showBackgroundColorPicker(event),
+      isActive: () => false, // 不显示高亮状态
+      isDisabled: () => !this.editor.can().setBackgroundColor('')
+    })
     
-    // 监听编辑器状态变化，更新按钮状态
-    const selectionUpdateHandler = () => {
-      this.textColorButtonInstance?.updateState()
-      this.highlightColorButtonInstance?.updateState()
-      this.updateTextColorDisplay()
-      this.updateHighlightColorDisplay()
+    this.backgroundColorButton = this.backgroundColorButtonInstance.button
+    if (this.backgroundColorButton) {
+      // 添加颜色显示区域
+      this.backgroundColorDisplay = ElementUtils.createDiv({
+        className: 'rich:ml-1 rich:w-3 rich:h-3 rich:rounded rich:border rich:border-gray-300'
+      })
+      ElementUtils.appendChild(this.backgroundColorButton, this.backgroundColorDisplay)
+      ElementUtils.appendChild(menuContainer, this.backgroundColorButton)
     }
-    const transactionHandler = () => {
-      this.textColorButtonInstance?.updateState()
-      this.highlightColorButtonInstance?.updateState()
-      this.updateTextColorDisplay()
-      this.updateHighlightColorDisplay()
-    }
-    
-    this.editor.on('selectionUpdate', selectionUpdateHandler)
-    this.editor.on('transaction', transactionHandler)
-    
-    // 保存清理函数
-    this.editorEventCleanup.push(
-      () => this.editor.off('selectionUpdate', selectionUpdateHandler),
-      () => this.editor.off('transaction', transactionHandler)
-    )
 
     ElementUtils.appendChild(this.container, menuContainer)
   }
@@ -113,8 +119,6 @@ export class ColorMenu {
       },
       editorRoot: this.editorRoot
     })
-    // 确保panel被创建
-    this.textColorPicker['createPanel']()
 
     // 初始化高亮颜色选择器（不设置triggerButton，在show时动态设置）
     this.highlightColorPicker = new ColorPicker(tempContainer, {
@@ -130,8 +134,21 @@ export class ColorMenu {
       },
       editorRoot: this.editorRoot
     })
-    // 确保panel被创建
-    this.highlightColorPicker['createPanel']()
+
+    // 初始化背景颜色选择器（不设置triggerButton，在show时动态设置）
+    this.backgroundColorPicker = new ColorPicker(tempContainer, {
+      type: 'background',
+      currentColor: this.getCurrentBackgroundColor(),
+      onColorSelect: (color: string) => {
+        this.editor.chain().focus().setBackgroundColor(color).run()
+        // 触发颜色显示区域更新
+        this.updateBackgroundColorDisplay()
+      },
+      onClose: () => {
+        this.backgroundColorPicker?.hide()
+      },
+      editorRoot: this.editorRoot
+    })
   }
 
 
@@ -140,11 +157,6 @@ export class ColorMenu {
     // 阻止事件冒泡，防止触发外部点击关闭
     if (event) {
       event.stopPropagation()
-    }
-    
-    // 先关闭其他颜色选择器
-    if (this.highlightColorPicker) {
-      this.highlightColorPicker.hide()
     }
     
     // 如果当前picker已经显示，则隐藏；否则显示
@@ -167,11 +179,6 @@ export class ColorMenu {
       event.stopPropagation()
     }
     
-    // 先关闭其他颜色选择器
-    if (this.textColorPicker) {
-      this.textColorPicker.hide()
-    }
-    
     // 如果当前picker已经显示，则隐藏；否则显示
     if (this.highlightColorPicker) {
       if (this.highlightColorPicker.isPanelVisible) {
@@ -186,6 +193,26 @@ export class ColorMenu {
     }
   }
 
+  private showBackgroundColorPicker(event?: Event): void {
+    // 阻止事件冒泡，防止触发外部点击关闭
+    if (event) {
+      event.stopPropagation()
+    }
+    
+    // 如果当前picker已经显示，则隐藏；否则显示
+    if (this.backgroundColorPicker) {
+      if (this.backgroundColorPicker.isPanelVisible) {
+        this.backgroundColorPicker.hide()
+      } else {
+        // 使用实例引用设置triggerButton
+        this.backgroundColorPicker['options'].triggerButton = this.backgroundColorButton || undefined
+        
+        this.backgroundColorPicker.updateCurrentColor(this.getCurrentBackgroundColor())
+        this.backgroundColorPicker.show()
+      }
+    }
+  }
+
   private getCurrentTextColor(): string {
     const attributes = this.editor.getAttributes('textStyle')
     return attributes.color || '#000000'
@@ -194,6 +221,11 @@ export class ColorMenu {
   private getCurrentHighlightColor(): string {
     const attributes = this.editor.getAttributes('highlight')
     return attributes.color || '#000000'
+  }
+
+  private getCurrentBackgroundColor(): string {
+    const attributes = this.editor.getAttributes('textStyle')
+    return attributes.backgroundColor || '#000000'
   }
 
 
@@ -230,7 +262,39 @@ export class ColorMenu {
     }
   }
 
+  /**
+   * 更新背景颜色显示区域
+   */
+  private updateBackgroundColorDisplay(): void {
+    if (!this.backgroundColorDisplay) return
+    
+    const color = this.getCurrentBackgroundColor()
+    if (color && color !== '#000000') {
+      StyleUtils.setStyle(this.backgroundColorDisplay, 'backgroundColor', color)
+      StyleUtils.setStyle(this.backgroundColorDisplay, 'borderColor', color)
+    } else {
+      StyleUtils.setStyle(this.backgroundColorDisplay, 'backgroundColor', '#ffffff')
+      StyleUtils.setStyle(this.backgroundColorDisplay, 'borderColor', '#d1d5db')
+    }
+  }
+
+  public getContainer(): HTMLElement {
+    return this.container
+  }
+
+  public updateState(): void {
+    this.textColorButtonInstance?.updateState()
+    this.highlightColorButtonInstance?.updateState()
+    this.backgroundColorButtonInstance?.updateState()
+    this.updateTextColorDisplay()
+    this.updateHighlightColorDisplay()
+    this.updateBackgroundColorDisplay()
+  }
+
   public destroy(): void {
+    // 从状态管理器注销
+  StateManager.getInstance().unregister(this)
+    
     // 清理编辑器事件监听器
     this.editorEventCleanup.forEach(cleanup => cleanup())
     this.editorEventCleanup = []
@@ -246,9 +310,15 @@ export class ColorMenu {
       this.highlightColorPicker = null
     }
     
+    if (this.backgroundColorPicker) {
+      this.backgroundColorPicker.destroy()
+      this.backgroundColorPicker = null
+    }
+    
     // 销毁按钮实例
     this.textColorButtonInstance?.destroy()
     this.highlightColorButtonInstance?.destroy()
+    this.backgroundColorButtonInstance?.destroy()
     
     // 清理所有事件监听器
     this.eventManager.cleanupForElement(this.container)
@@ -261,7 +331,9 @@ export class ColorMenu {
     // 清理引用
     this.textColorButton = null
     this.highlightColorButton = null
+    this.backgroundColorButton = null
     this.textColorButtonInstance = null
     this.highlightColorButtonInstance = null
+    this.backgroundColorButtonInstance = null
   }
 }

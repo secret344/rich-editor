@@ -1,4 +1,4 @@
-import { nodeInputRule, nodePasteRule } from "@tiptap/core";
+import { nodeInputRule, nodePasteRule, type CommandProps } from "@tiptap/core";
 import Image from "@tiptap/extension-image";
 import NodeView from "./node-view";
 
@@ -36,6 +36,27 @@ export default Image.extend<ResizableImageOptions>({
   },
   addNodeView() {
     return NodeView();
+  },
+  addCommands() {
+    return {
+      setImage:
+        (
+          options: { src: string; alt?: string; title?: string; id?: string },
+          replace?: boolean
+        ) =>
+        ({ commands, editor }: CommandProps) => {
+          if (replace) {
+            return commands.insertContent({
+              type: this.name,
+              attrs: options,
+            });
+          }
+          return commands.insertContentAt(editor.state.selection.anchor, {
+            type: this.name,
+            attrs: options,
+          });
+        },
+    };
   },
   addPasteRules() {
     return [

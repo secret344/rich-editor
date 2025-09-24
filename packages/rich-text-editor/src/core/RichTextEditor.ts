@@ -21,6 +21,7 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import { FontSize } from "@tiptap/extension-text-style/font-size";
 import { LineHeight } from "@tiptap/extension-text-style/line-height";
 import Color from "@tiptap/extension-color";
+import { BackgroundColor } from "@tiptap/extension-text-style/background-color";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
 import Image from "./extensions/image";
@@ -38,43 +39,12 @@ import BulletList from "@tiptap/extension-bullet-list";
 import OrderedList from "@tiptap/extension-ordered-list";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { all, createLowlight } from "lowlight";
-import javascript from "highlight.js/lib/languages/javascript";
-import typescript from "highlight.js/lib/languages/typescript";
-import html from "highlight.js/lib/languages/xml";
-import css from "highlight.js/lib/languages/css";
-import python from "highlight.js/lib/languages/python";
-import java from "highlight.js/lib/languages/java";
-import cpp from "highlight.js/lib/languages/cpp";
-import json from "highlight.js/lib/languages/json";
-import xml from "highlight.js/lib/languages/xml";
-import sql from "highlight.js/lib/languages/sql";
-import bash from "highlight.js/lib/languages/bash";
-import markdown from "highlight.js/lib/languages/markdown";
 import { MenuManager } from "@/core/menu/MenuManager";
 import { EventManager } from "@/utils/EventManager";
 import { StateManager } from "@/utils/StateManager";
 import { ElementUtils, StyleUtils, TextUtils } from "@/core/dom";
+import NodeAlign from "@/core/extensions/node-align";
 
-// 创建并配置 lowlight 实例
-function createConfiguredLowlight() {
-  const lowlight = createLowlight(all);
-
-  // 注册所有支持的语言
-  lowlight.register("javascript", javascript);
-  lowlight.register("typescript", typescript);
-  lowlight.register("html", html);
-  lowlight.register("css", css);
-  lowlight.register("python", python);
-  lowlight.register("java", java);
-  lowlight.register("cpp", cpp);
-  lowlight.register("json", json);
-  lowlight.register("xml", xml);
-  lowlight.register("sql", sql);
-  lowlight.register("bash", bash);
-  lowlight.register("markdown", markdown);
-
-  return lowlight;
-}
 
 /** 富文本编辑器配置选项 */
 export interface RichTextEditorOptions {
@@ -229,6 +199,9 @@ export class RichTextEditor {
         Color.configure({
           types: ["textStyle"],
         }),
+        BackgroundColor.configure({
+          types: ["textStyle"],
+        }),
         Highlight.configure({
           multicolor: true,
         }),
@@ -263,8 +236,9 @@ export class RichTextEditor {
         TextAlign.configure({
           types: ["heading", "paragraph"],
         }),
+        NodeAlign,
         CodeBlockLowlight.configure({
-          lowlight: createConfiguredLowlight(),
+          lowlight: createLowlight(all),
           enableTabIndentation: true,
           HTMLAttributes: {
             class:
@@ -309,22 +283,18 @@ export class RichTextEditor {
       },
       onUpdate: ({ editor }) => {
         this.options.onUpdate?.(editor.getHTML());
-        // 更新所有按钮状态
-        StateManager.getInstance().updateAll();
       },
       onSelectionUpdate: ({ editor }) => {
-        this.options.onSelectionUpdate?.(editor.state.selection);
         // 更新所有按钮状态
-        StateManager.getInstance().updateAll();
+        this.options.onSelectionUpdate?.(editor.state.selection);
       },
       onFocus: () => {
         this.options.onFocus?.();
-        // 更新所有按钮状态
-        StateManager.getInstance().updateAll();
       },
       onBlur: () => {
         this.options.onBlur?.();
-        // 更新所有按钮状态
+      },
+      onTransaction() {
         StateManager.getInstance().updateAll();
       },
     });

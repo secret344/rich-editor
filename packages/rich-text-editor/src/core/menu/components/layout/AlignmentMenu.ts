@@ -27,25 +27,34 @@ export class AlignmentMenu {
         id: 'align-left', 
         label: '左对齐', 
         icon: '≡',
-        onClick: () => this.editor.chain().focus().setTextAlign('left').run(),
-        active: () => this.editor.isActive({ textAlign: 'left' }),
-        disabled: () => !this.editor.can().setTextAlign('left')
+        onClick: () => {
+          this.editor.chain().focus().setTextAlign('left').run()
+          this.editor.chain().focus().setNodeAlign('flex-start').run()
+        },
+        active: () => this.editor.isActive({ textAlign: 'left' }) || this.editor.isActive({ nodeAlign: 'flex-start' }),
+        disabled: () => !this.editor.can().setTextAlign('left') && !this.editor.can().setNodeAlign('flex-start')
       },
       { 
         id: 'align-center', 
         label: '居中对齐', 
         icon: '≡',
-        onClick: () => this.editor.chain().focus().setTextAlign('center').run(),
-        active: () => this.editor.isActive({ textAlign: 'center' }),
-        disabled: () => !this.editor.can().setTextAlign('center')
+        onClick: () => {
+          this.editor.chain().focus().setTextAlign('center').run()
+          this.editor.chain().focus().setNodeAlign('center').run()
+        },
+        active: () => this.editor.isActive({ textAlign: 'center' }) || this.editor.isActive({ nodeAlign: 'center' }),
+        disabled: () => !this.editor.can().setTextAlign('center') && !this.editor.can().setNodeAlign('center')
       },
       { 
         id: 'align-right', 
         label: '右对齐', 
         icon: '≡',
-        onClick: () => this.editor.chain().focus().setTextAlign('right').run(),
-        active: () => this.editor.isActive({ textAlign: 'right' }),
-        disabled: () => !this.editor.can().setTextAlign('right')
+        onClick: () => {
+          this.editor.chain().focus().setTextAlign('right').run()
+          this.editor.chain().focus().setNodeAlign('flex-end').run()
+        },
+        active: () => this.editor.isActive({ textAlign: 'right' }) || this.editor.isActive({ nodeAlign: 'flex-end' }),
+        disabled: () => !this.editor.can().setTextAlign('right') && !this.editor.can().setNodeAlign('flex-end')
       },
       { 
         id: 'align-justify', 

@@ -21,6 +21,10 @@
   @apply rich:outline-none;
 }
 
+.rich-text-editor .ProseMirror-selectednode {
+  @apply rich:after:content-[''] rich:after:absolute rich:after:inset-0 rich:bg-gray-100;
+}
+
 .rich-text-editor .ProseMirror p {
   @apply rich:mb-2;
 }

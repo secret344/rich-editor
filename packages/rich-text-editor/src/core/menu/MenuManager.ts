@@ -173,11 +173,10 @@ export class MenuManager {
 
     // 颜色菜单
     if (this.options.showColors) {
-      const colorContainer = ContainerUtils.createContainer({ className: 'rich:flex rich:items-center rich:gap-1' })
-      const colorMenu = new ColorMenu(colorContainer, this.editor, this.eventManager, this.editorRoot)
+      const colorMenu = new ColorMenu(this.editor, this.eventManager, this.editorRoot)
       this.menuComponents.push(colorMenu)
-      this.menuContainers.set('colors', colorContainer)
-      ElementUtils.appendChild(this.scrollContainer, colorContainer)
+      this.menuContainers.set('colors', colorMenu.getContainer())
+      ElementUtils.appendChild(this.scrollContainer, colorMenu.getContainer())
       this.renderDivider()
     }
 

@@ -4,7 +4,7 @@ import { EventUtils } from '@/core/dom/utils/EventUtils'
 import { FormUtils } from '@/core/dom/utils/FormUtils'
 
 export interface ColorPickerOptions extends BaseDropdownOptions {
-  type: 'text' | 'highlight'
+  type: 'text' | 'highlight' | 'background'
   onColorSelect: (color: string) => void
   onClose?: () => void
   currentColor?: string
@@ -45,7 +45,8 @@ export class ColorPicker extends BaseDropdownPanel {
     const title = ElementUtils.createElement({
       tagName: 'div',
       className: 'rich:px-3 rich:py-2 rich:text-sm rich:font-medium rich:text-gray-900 rich:border-b rich:border-gray-200',
-      textContent: (this.options as ColorPickerOptions).type === 'text' ? '文字颜色' : '高亮颜色',
+      textContent: (this.options as ColorPickerOptions).type === 'text' ? '文字颜色' : 
+                   (this.options as ColorPickerOptions).type === 'highlight' ? '高亮颜色' : '背景颜色',
     })
     ElementUtils.appendChild(this.panel, title)
 

@@ -57,7 +57,6 @@ export class FontSizeMenu implements StateUpdatable {
         label: '默认',
         onClick: () => {
           this.editor.chain().focus().unsetFontSize().run()
-          this.updateState()
         },
         active: () => false
       },
@@ -66,7 +65,6 @@ export class FontSizeMenu implements StateUpdatable {
         label: fontSize.label,
         onClick: () => {
           this.editor.chain().focus().setFontSize(fontSize.size).run()
-          this.updateState()
         },
         active: () => this.editor.getAttributes('textStyle').fontSize === fontSize.size
       }))

@@ -11,18 +11,27 @@ interface ResizeHandle {
 
 export default function NodeView(): NodeViewRenderer {
   return (props): NodeView => {
-    const { node, view, getPos } = props;
-
+    let { node, view, getPos } = props;
     // 创建事件管理器
     const eventManager = new EventManager();
-
+    // 创建包裹元素
+    const nodeWrapper = ElementUtils.createDiv({
+      className:
+        "rich:relative rich:flex rich:justify-center rich:max-h-full rich:mx-auto",
+      attributes: {
+        "data-node-view-wrapper": "true",
+      },
+    });
     // 创建包裹元素
     const wrapper = ElementUtils.createDiv({
-      className: "rich:relative rich:inline-block rich:max-w-full rich:mx-auto",
+      className:
+        "rich:relative rich:inline-block rich:max-w-full rich:z-10",
       attributes: {
         "data-image-wrapper": "true",
       },
     });
+
+    ElementUtils.appendChild(nodeWrapper, wrapper);
 
     // 创建图片元素
     const img = ElementUtils.createElement({
@@ -51,12 +60,12 @@ export default function NodeView(): NodeViewRenderer {
     img.onload = () => {
       aspectRatio = img.naturalWidth / img.naturalHeight;
     };
-    
+
     // 如果图片已经加载完成（缓存情况）
     if (img.complete && img.naturalWidth > 0) {
       aspectRatio = img.naturalWidth / img.naturalHeight;
     }
-    
+
     ElementUtils.appendChild(wrapper, img);
 
     // 拖拽手柄相关变量
@@ -67,7 +76,7 @@ export default function NodeView(): NodeViewRenderer {
     let startY = 0;
     let startWidth = 0;
     let startHeight = 0;
-    
+
     // 保存拖拽事件处理器引用，用于正确清理
     let dragMouseMoveHandler: EventListener | null = null;
     let dragMouseUpHandler: EventListener | null = null;
@@ -156,6 +165,7 @@ export default function NodeView(): NodeViewRenderer {
 
     // 隐藏拖拽手柄
     const hideHandles = () => {
+      StyleUtils.setStyle(wrapper, "outline", "");
       handles.forEach((handle) => {
         StyleUtils.setStyle(handle, "display", "none");
       });
@@ -166,6 +176,7 @@ export default function NodeView(): NodeViewRenderer {
       if (handles.length === 0) {
         createHandles();
       }
+      StyleUtils.setStyle(wrapper, "outline", "2px solid #3b82f6");
       handles.forEach((handle) => {
         StyleUtils.setStyle(handle, "display", "block");
       });
@@ -193,9 +204,18 @@ export default function NodeView(): NodeViewRenderer {
       dragTouchEndHandler = (e: Event) => handleTouchEnd(e as TouchEvent);
 
       // 添加事件监听器
-      eventManager.addEventListener(document, "mousemove", dragMouseMoveHandler);
+      eventManager.addEventListener(
+        document,
+        "mousemove",
+        dragMouseMoveHandler
+      );
       eventManager.addEventListener(document, "mouseup", dragMouseUpHandler);
-      eventManager.addEventListener(document, "touchmove", dragTouchMoveHandler, { passive: false });
+      eventManager.addEventListener(
+        document,
+        "touchmove",
+        dragTouchMoveHandler,
+        { passive: false }
+      );
       eventManager.addEventListener(document, "touchend", dragTouchEndHandler);
 
       StyleUtils.setStyle(
@@ -380,19 +400,35 @@ export default function NodeView(): NodeViewRenderer {
 
       // 立即清理拖拽相关的事件监听器
       if (dragMouseMoveHandler) {
-        eventManager.removeEventListener(document, "mousemove", dragMouseMoveHandler);
+        eventManager.removeEventListener(
+          document,
+          "mousemove",
+          dragMouseMoveHandler
+        );
         dragMouseMoveHandler = null;
       }
       if (dragMouseUpHandler) {
-        eventManager.removeEventListener(document, "mouseup", dragMouseUpHandler);
+        eventManager.removeEventListener(
+          document,
+          "mouseup",
+          dragMouseUpHandler
+        );
         dragMouseUpHandler = null;
       }
       if (dragTouchMoveHandler) {
-        eventManager.removeEventListener(document, "touchmove", dragTouchMoveHandler);
+        eventManager.removeEventListener(
+          document,
+          "touchmove",
+          dragTouchMoveHandler
+        );
         dragTouchMoveHandler = null;
       }
       if (dragTouchEndHandler) {
-        eventManager.removeEventListener(document, "touchend", dragTouchEndHandler);
+        eventManager.removeEventListener(
+          document,
+          "touchend",
+          dragTouchEndHandler
+        );
         dragTouchEndHandler = null;
       }
 
@@ -433,15 +469,16 @@ export default function NodeView(): NodeViewRenderer {
       handleDocumentClick(e as MouseEvent)
     );
 
-    // 初始隐藏手柄
-    hideHandles();
-
     return {
-      dom: wrapper,
+      dom: nodeWrapper,
 
       update(newNode) {
         if (newNode.type !== node.type) return false;
-
+        StyleUtils.setStyle(
+          nodeWrapper,
+          "justifyContent",
+          newNode.attrs.nodeAlign
+        );
         // 更新图片属性
         if (newNode.attrs.src !== node.attrs.src) {
           img.src = newNode.attrs.src;
@@ -462,19 +499,17 @@ export default function NodeView(): NodeViewRenderer {
       },
 
       selectNode() {
-        showHandles();
-        StyleUtils.setStyle(wrapper, "outline", "2px solid #3b82f6");
+        StyleUtils.addClass(nodeWrapper, "ProseMirror-selectednode");
       },
 
       deselectNode() {
         hideHandles();
-        StyleUtils.setStyle(wrapper, "outline", "");
+        StyleUtils.removeClass(nodeWrapper, "ProseMirror-selectednode");
       },
 
       destroy() {
         // 移除所有事件监听器
         eventManager.cleanup();
-
         // 清理手柄
         handles.forEach((handle) => {
           handle.remove();
