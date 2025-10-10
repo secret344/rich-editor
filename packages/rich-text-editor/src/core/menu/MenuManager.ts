@@ -24,6 +24,7 @@ import {
 } from '@/core/menu/components'
 import { LinkMenu } from '@/core/menu/components/media/LinkMenu'
 import { ImageMenu } from '@/core/menu/components/media/ImageMenu'
+import { EmojiMenu } from '@/core/menu/components/text/EmojiMenu'
 
 /**
  * 菜单管理器
@@ -60,6 +61,7 @@ export class MenuManager {
       showBlockquote: true,
       showFontSize: true,
       showLineHeight: true,
+      showEmoji: true,
       ...options
     }
     this.eventManager = new EventManager()
@@ -207,6 +209,18 @@ export class MenuManager {
       this.menuComponents.push(tableMenu)
       this.menuContainers.set('tables', tableContainer)
       ElementUtils.appendChild(this.scrollContainer, tableContainer)
+      this.renderDivider()
+    }
+
+    // Emoji 菜单
+    if (this.options.showEmoji) {
+      const emojiContainer = ContainerUtils.createContainer({ className: 'rich:flex rich:items-center rich:gap-1' })
+      const emojiMenu = new EmojiMenu(emojiContainer, this.editor, this.eventManager, this.editorRoot, {
+        locale: 'zh_CN' // 默认中文，可以从配置中获取
+      })
+      this.menuComponents.push(emojiMenu)
+      this.menuContainers.set('emoji', emojiContainer)
+      ElementUtils.appendChild(this.scrollContainer, emojiContainer)
       this.renderDivider()
     }
 

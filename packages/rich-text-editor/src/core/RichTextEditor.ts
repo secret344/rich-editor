@@ -104,6 +104,8 @@ export interface ToolbarOptions {
   showFontSize?: boolean;
   /** 显示行高选择器 */
   showLineHeight?: boolean;
+  /** 显示 emoji 选择器 */
+  showEmoji?: boolean;
   /** 代码块支持的语言配置 */
   codeBlockLanguages?: Array<{ value: string; label: string }>;
   /** 自定义按钮 */

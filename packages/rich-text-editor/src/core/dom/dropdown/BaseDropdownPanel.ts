@@ -254,8 +254,12 @@ export abstract class BaseDropdownPanel {
   }
 
   public show(): void {
-    // 关闭其他已打开的菜单
-    BaseDropdownPanel.closeAllMenus();
+    // 关闭其他已打开的菜单（排除当前菜单）
+    BaseDropdownPanel.openMenus.forEach((menu) => {
+      if (menu !== this && menu.isVisible) {
+        menu.hide();
+      }
+    });
 
     // 如果还没有创建，先创建
     if (!this.isCreated) {
