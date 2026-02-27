@@ -23,7 +23,6 @@ interface ContextMenuItem {
   label: string
   icon: string
   action: (editor: Editor, pos: number) => void
-  separator?: boolean
 }
 
 /** 获取通用转换菜单项 */
@@ -83,13 +82,6 @@ function getTurnIntoItems(): ContextMenuItem[] {
 /** 获取块操作菜单项 */
 function getBlockActionItems(): ContextMenuItem[] {
   return [
-    {
-      id: 'sep',
-      label: '',
-      icon: '',
-      separator: true,
-      action: () => {},
-    },
     {
       id: 'duplicate',
       label: '复制块',
@@ -358,55 +350,87 @@ class NotionFloatingMenuView {
 
     const capturedPos = this.currentBlockPos
 
-    this.contextMenuEl = ElementUtils.createDiv({ className: 'notion-context-menu' })
+    // 使用与 BaseDropdownPanel / EnhancedDropdownMenu 相同的 bubble 风格
+    this.contextMenuEl = ElementUtils.createDiv({
+      className:
+        'rich:bg-white rich:border rich:border-gray-200 rich:rounded-md rich:shadow-lg rich:overflow-y-auto rich:py-1',
+    })
     StyleUtils.setStyles(this.contextMenuEl, {
       position: 'fixed',
       zIndex: '200',
       left: `${x}px`,
       top: `${y}px`,
+      minWidth: '200px',
+      maxHeight: '320px',
     })
 
-    const items: ContextMenuItem[] = [
-      ...getTurnIntoItems(),
-      ...getBlockActionItems(),
-    ]
+    // ── 转换为 ──────────────────────────────────────────
+    const turnIntoLabel = ElementUtils.createElement({
+      tagName: 'div',
+      className:
+        'rich:px-3 rich:pt-2 rich:pb-1 rich:text-xs rich:font-semibold rich:text-gray-400 rich:uppercase rich:tracking-wide',
+      textContent: '转换为',
+    })
+    ElementUtils.appendChild(this.contextMenuEl, turnIntoLabel)
 
-    items.forEach((item) => {
-      if (item.separator) {
-        const sep = ElementUtils.createDiv({ className: 'notion-context-menu__sep' })
-        ElementUtils.appendChild(this.contextMenuEl!, sep)
-        return
-      }
+    getTurnIntoItems().forEach((item) => {
+      this.appendMenuItem(item, capturedPos)
+    })
 
-      const row = ElementUtils.createDiv({ className: 'notion-context-menu__item' })
+    // ── 分隔线 ──────────────────────────────────────────
+    const sep = ElementUtils.createElement({
+      tagName: 'div',
+      className: 'rich:border-t rich:border-gray-200 rich:my-1',
+    })
+    ElementUtils.appendChild(this.contextMenuEl, sep)
 
-      const icon = ElementUtils.createElement({
-        tagName: 'span',
-        className: 'notion-context-menu__icon',
-        textContent: item.icon,
-      })
-      const label = ElementUtils.createElement({
-        tagName: 'span',
-        className: 'notion-context-menu__label',
-        textContent: item.label,
-      })
+    // ── 操作 ────────────────────────────────────────────
+    const actionsLabel = ElementUtils.createElement({
+      tagName: 'div',
+      className:
+        'rich:px-3 rich:pt-2 rich:pb-1 rich:text-xs rich:font-semibold rich:text-gray-400 rich:uppercase rich:tracking-wide',
+      textContent: '操作',
+    })
+    ElementUtils.appendChild(this.contextMenuEl, actionsLabel)
 
-      ElementUtils.appendChild(row, icon)
-      ElementUtils.appendChild(row, label)
-
-      this.eventManager.addEventListener(row, 'mousedown', (ev) => {
-        ev.preventDefault()
-        ev.stopPropagation()
-        this.closeContextMenu()
-        this.hideMenu()
-        item.action(this.editor, capturedPos)
-      })
-
-      ElementUtils.appendChild(this.contextMenuEl!, row)
+    getBlockActionItems().forEach((item) => {
+      this.appendMenuItem(item, capturedPos)
     })
 
     document.body.appendChild(this.contextMenuEl)
     this.adjustContextMenuPosition()
+  }
+
+  /** 向上下文菜单追加一个菜单项（bubble 风格） */
+  private appendMenuItem(item: ContextMenuItem, capturedPos: number): void {
+    const row = ElementUtils.createElement({
+      tagName: 'div',
+      className:
+        'rich:px-3 rich:py-2 rich:text-sm rich:cursor-pointer rich:flex rich:items-center rich:gap-2 rich:transition-colors hover:rich:bg-gray-100',
+    })
+
+    const icon = ElementUtils.createElement({
+      tagName: 'span',
+      className: 'rich:text-base rich:text-gray-600',
+      textContent: item.icon,
+    })
+    const label = ElementUtils.createElement({
+      tagName: 'span',
+      textContent: item.label,
+    })
+
+    ElementUtils.appendChild(row, icon)
+    ElementUtils.appendChild(row, label)
+
+    this.eventManager.addEventListener(row, 'mousedown', (ev) => {
+      ev.preventDefault()
+      ev.stopPropagation()
+      this.closeContextMenu()
+      this.hideMenu()
+      item.action(this.editor, capturedPos)
+    })
+
+    ElementUtils.appendChild(this.contextMenuEl!, row)
   }
 
   /** 防止菜单超出视口 */
