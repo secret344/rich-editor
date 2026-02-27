@@ -31,6 +31,14 @@ const props = defineProps({
   toolbarOptions: {
     type: Object,
     default: () => ({})
+  },
+  mentionOptions: {
+    type: Object,
+    default: undefined
+  },
+  slashCommandOptions: {
+    type: Object,
+    default: undefined
   }
 })
 
@@ -48,11 +56,13 @@ const initEditor = () => {
 
   // 创建编辑器（包含工具栏）
   editor = new RichTextEditor(editorContainer.value, {
-    content: props.modelValue || '<p>开始编写你的内容...</p>',
+    content: props.modelValue || '<p></p>',
     placeholder: props.placeholder,
     editable: props.editable,
     showToolbar: props.showToolbar,
     toolbarOptions: props.toolbarOptions,
+    mentionOptions: props.mentionOptions,
+    slashCommandOptions: props.slashCommandOptions,
     onUpdate: (content) => {
       emit('update:modelValue', content)
     },

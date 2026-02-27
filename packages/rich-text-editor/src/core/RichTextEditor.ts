@@ -44,6 +44,10 @@ import { EventManager } from "@/utils/EventManager";
 import { StateManager } from "@/utils/StateManager";
 import { ElementUtils, StyleUtils, TextUtils } from "@/core/dom";
 import NodeAlign from "@/core/extensions/node-align";
+import AudioExtension from "@/core/extensions/audio";
+import VideoExtension from "@/core/extensions/video";
+import { createMentionExtension, type MentionItem, type MentionOptions } from "@/core/extensions/mention";
+import { createSlashCommandExtension, type SlashCommandItem, type SlashCommandOptions } from "@/core/extensions/slash-command";
 
 
 /** 富文本编辑器配置选项 */
@@ -70,6 +74,10 @@ export interface RichTextEditorOptions {
   onFocus?: () => void;
   /** 失去焦点回调 */
   onBlur?: () => void;
+  /** Mention（@提及）配置，传入则启用 mention 功能 */
+  mentionOptions?: MentionOptions;
+  /** Slash 命令配置，传入则启用 Notion-like 斜杠命令 */
+  slashCommandOptions?: SlashCommandOptions;
 }
 
 /** 工具栏配置选项 */
@@ -84,6 +92,10 @@ export interface ToolbarOptions {
   showBlocks?: boolean;
   /** 显示媒体按钮（图片、链接） */
   showMedia?: boolean;
+  /** 显示视频按钮 */
+  showVideo?: boolean;
+  /** 显示音频按钮 */
+  showAudio?: boolean;
   /** 显示颜色选择器 */
   showColors?: boolean;
   /** 显示表格按钮 */
@@ -106,6 +118,8 @@ export interface ToolbarOptions {
   showLineHeight?: boolean;
   /** 显示 emoji 选择器 */
   showEmoji?: boolean;
+  /** 显示全屏按钮 */
+  showFullscreen?: boolean;
   /** 代码块支持的语言配置 */
   codeBlockLanguages?: Array<{ value: string; label: string }>;
   /** 自定义按钮 */
@@ -132,6 +146,9 @@ export interface ToolbarButton {
   isDisabled?: () => boolean;
 }
 
+// Re-export extension types for consumers
+export type { MentionItem, MentionOptions, SlashCommandItem, SlashCommandOptions };
+
 /**
  * 富文本编辑器主类
  * 基于 Tiptap 构建，提供完整的富文本编辑功能
@@ -147,12 +164,11 @@ export class RichTextEditor {
   constructor(container: HTMLElement, options: RichTextEditorOptions = {}) {
     this.container = container;
 
-    // 为编辑器根节点添加标识
     StyleUtils.addClass(this.container, "rich-text-editor");
     TextUtils.setAttribute(this.container, "data-editor-root", "true");
 
     this.options = {
-      content: "<p>开始编写你的内容...</p>",
+      content: "<p></p>",
       placeholder: "开始编写你的内容...",
       editable: true,
       showToolbar: true,
@@ -161,133 +177,109 @@ export class RichTextEditor {
     };
     this.eventManager = new EventManager();
 
+    const extensions: any[] = [
+      Document,
+      Paragraph,
+      Text,
+      Bold,
+      Italic,
+      Strike,
+      Code,
+      Dropcursor,
+      Gapcursor,
+      HardBreak,
+      Heading.configure({ levels: [1, 2, 3, 4, 5, 6] }),
+      Blockquote,
+      ListItem,
+      BulletList.configure({ HTMLAttributes: { class: "rich:list-disc" } }),
+      OrderedList.configure({ HTMLAttributes: { class: "rich:list-decimal" } }),
+      TextStyle,
+      FontSize.configure({ types: ["textStyle"] }),
+      LineHeight.configure({ types: ["textStyle"] }),
+      Color.configure({ types: ["textStyle"] }),
+      BackgroundColor.configure({ types: ["textStyle"] }),
+      Highlight.configure({ multicolor: true }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: "rich:text-blue-600 rich:underline hover:rich:text-blue-800",
+        },
+        protocols: ["ftp", "mailto"],
+      }),
+      Image.configure({
+        inline: false,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: "rich:h-auto rich:rounded-lg rich:cursor-pointer rich:relative",
+          style: "max-width: 100%; min-width: 50px; min-height: 50px;",
+        },
+      }),
+      AudioExtension.configure({
+        HTMLAttributes: { class: "rich:w-full rich:rounded-lg rich:my-2", controls: "true" },
+      }),
+      VideoExtension.configure({
+        HTMLAttributes: { class: "rich:rounded-lg" },
+      }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: { class: "rich:border-collapse rich:border rich:border-gray-300" },
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      Underline,
+      Superscript,
+      Subscript,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      NodeAlign,
+      CodeBlockLowlight.configure({
+        lowlight: createLowlight(all),
+        enableTabIndentation: true,
+        HTMLAttributes: {
+          class: "rich:bg-gray-100 rich:rounded-lg rich:p-4 rich:font-mono rich:text-sm rich:overflow-x-auto",
+        },
+      }),
+      UndoRedo,
+      FileHandler.configure({
+        allowedMimeTypes: ["image/png", "image/jpeg", "image/gif", "image/webp"],
+        onDrop: (_currentEditor, files, pos) => {
+          files.forEach((file) => {
+            if (file.type.startsWith("image/")) {
+              this.handleImageFile(file, pos);
+            }
+          });
+        },
+        onPaste: (currentEditor, files, htmlContent) => {
+          files.forEach((file) => {
+            if (htmlContent) return false;
+            if (file.type.startsWith("image/")) {
+              this.handleImageFile(file, currentEditor.state.selection.anchor);
+            }
+          });
+        },
+      }),
+    ];
+
+    if (this.options.mentionOptions) {
+      extensions.push(createMentionExtension(this.options.mentionOptions));
+    }
+
+    if (this.options.slashCommandOptions !== undefined) {
+      extensions.push(createSlashCommandExtension(this.options.slashCommandOptions));
+    }
+
     this.editor = new Editor({
       element: this.container,
       content: this.options.content,
       editable: this.options.editable,
-      extensions: [
-        Document,
-        Paragraph,
-        Text,
-        Bold,
-        Italic,
-        Strike,
-        Code,
-        Dropcursor,
-        Gapcursor,
-        HardBreak,
-        Heading.configure({
-          levels: [1, 2, 3, 4, 5, 6],
-        }),
-        Blockquote,
-        ListItem,
-        BulletList.configure({
-          HTMLAttributes: {
-            class: "rich:list-disc",
-          },
-        }),
-        OrderedList.configure({
-          HTMLAttributes: {
-            class: "rich:list-decimal",
-          },
-        }),
-        TextStyle,
-        FontSize.configure({
-          types: ["textStyle"],
-        }),
-        LineHeight.configure({
-          types: ["textStyle"],
-        }),
-        Color.configure({
-          types: ["textStyle"],
-        }),
-        BackgroundColor.configure({
-          types: ["textStyle"],
-        }),
-        Highlight.configure({
-          multicolor: true,
-        }),
-        Link.configure({
-          openOnClick: false,
-          HTMLAttributes: {
-            class: "rich:text-blue-600 rich:underline hover:rich:text-blue-800",
-          },
-          protocols: ["ftp", "mailto"],
-        }),
-        Image.configure({
-          inline: false,
-          allowBase64: true,
-          HTMLAttributes: {
-            class:
-              "rich:h-auto rich:rounded-lg rich:cursor-pointer rich:relative",
-            style: "max-width: 100%; min-width: 50px; min-height: 50px;",
-          },
-        }),
-        Table.configure({
-          resizable: true,
-          HTMLAttributes: {
-            class: "rich:border-collapse rich:border rich:border-gray-300",
-          },
-        }),
-        TableRow,
-        TableHeader,
-        TableCell,
-        Underline,
-        Superscript,
-        Subscript,
-        TextAlign.configure({
-          types: ["heading", "paragraph"],
-        }),
-        NodeAlign,
-        CodeBlockLowlight.configure({
-          lowlight: createLowlight(all),
-          enableTabIndentation: true,
-          HTMLAttributes: {
-            class:
-              "rich:bg-gray-100 rich:rounded-lg rich:p-4 rich:font-mono rich:text-sm rich:overflow-x-auto",
-          },
-        }),
-        UndoRedo,
-        FileHandler.configure({
-          allowedMimeTypes: [
-            "image/png",
-            "image/jpeg",
-            "image/gif",
-            "image/webp",
-          ],
-          onDrop: (_currentEditor, files, pos) => {
-            // 处理文件上传
-            files.forEach((file) => {
-              if (file.type.startsWith("image/")) {
-                this.handleImageFile(file, pos);
-              }
-            });
-          },
-          onPaste: (currentEditor, files, htmlContent) => {
-            files.forEach((file) => {
-              if (htmlContent) {
-                return false;
-              }
-              if (file.type.startsWith("image/")) {
-                this.handleImageFile(
-                  file,
-                  currentEditor.state.selection.anchor
-                );
-              }
-            });
-          },
-        }),
-      ],
+      extensions,
       editorProps: {
-        attributes: {
-          class: "focus:rich:outline-none rich:min-h-96 rich:p-4",
-        },
+        attributes: { class: "focus:rich:outline-none rich:min-h-96 rich:p-4" },
       },
       onUpdate: ({ editor }) => {
         this.options.onUpdate?.(editor.getHTML());
       },
       onSelectionUpdate: ({ editor }) => {
-        // 更新所有按钮状态
         this.options.onSelectionUpdate?.(editor.state.selection);
       },
       onFocus: () => {
@@ -301,32 +293,19 @@ export class RichTextEditor {
       },
     });
 
-    // 创建工具栏
     if (this.options.showToolbar) {
       this.createToolbar();
     }
-
-    // 添加点击空白区域的事件监听
-    // this.setupClickToAddLine();
   }
 
   private createToolbar(): void {
-    // 先完全清理现有的工具栏
     this.destroyToolbar();
 
-    // 创建新的工具栏容器
-    this.toolbarContainer = ElementUtils.createDiv({
-      className: "rich:toolbar-container",
-    });
+    this.toolbarContainer = ElementUtils.createDiv({ className: "rich:toolbar-container" });
 
-    // 将工具栏容器插入到编辑器容器的开头
     const firstChild = this.container.firstElementChild as HTMLElement | null;
     if (firstChild) {
-      ElementUtils.insertBefore(
-        this.container,
-        this.toolbarContainer,
-        firstChild
-      );
+      ElementUtils.insertBefore(this.container, this.toolbarContainer, firstChild);
     } else {
       ElementUtils.appendChild(this.container, this.toolbarContainer);
     }
@@ -350,72 +329,87 @@ export class RichTextEditor {
     }
   }
 
-  // 公共 API - 内容操作
+  /** 获取 HTML 内容 */
   getHTML(): string {
     return this.editor.getHTML();
   }
 
+  /** 设置 HTML 内容 */
   setHTML(content: string): void {
     this.editor.commands.setContent(content);
   }
 
+  /** 获取纯文本内容 */
   getText(): string {
     return this.editor.getText();
   }
 
+  /** 设置纯文本内容 */
   setText(text: string): void {
     this.editor.commands.setContent(text);
   }
+
+  /** 获取 JSON 文档结构 */
   getJSON() {
     return this.editor.getJSON();
   }
+
+  /** 清空内容 */
   clear(): void {
     this.editor.commands.clearContent();
   }
 
-  // 公共 API - 状态控制
+  /** 聚焦编辑器 */
   focus(): void {
     this.editor.commands.focus();
   }
 
+  /** 使编辑器失焦 */
   blur(): void {
     this.editor.commands.blur();
   }
 
+  /** 是否为空 */
   isEmpty(): boolean {
     return this.editor.isEmpty;
   }
 
+  /** 是否处于焦点 */
   isFocused(): boolean {
     return this.editor.isFocused;
   }
 
+  /** 是否可编辑 */
   isEditable(): boolean {
     return this.editor.isEditable;
   }
 
+  /** 设置编辑器可编辑状态 */
   setEditable(editable: boolean): void {
     this.editor.setEditable(editable);
   }
 
-  // 公共 API - 历史操作
+  /** 撤销 */
   undo(): void {
     this.editor.chain().focus().undo().run();
   }
 
+  /** 重做 */
   redo(): void {
     this.editor.chain().focus().redo().run();
   }
 
+  /** 是否可撤销 */
   canUndo(): boolean {
     return this.editor.can().undo();
   }
 
+  /** 是否可重做 */
   canRedo(): boolean {
     return this.editor.can().redo();
   }
 
-  // 公共 API - 工具栏控制
+  /** 显示工具栏 */
   showToolbar(): void {
     if (!this.toolbar) {
       this.options.showToolbar = true;
@@ -423,79 +417,37 @@ export class RichTextEditor {
     }
   }
 
+  /** 隐藏工具栏 */
   hideToolbar(): void {
     this.destroyToolbar();
     this.options.showToolbar = false;
   }
 
+  /** 动态更新工具栏配置 */
   updateToolbar(options: ToolbarOptions): void {
-    this.options.toolbarOptions = {
-      ...this.options.toolbarOptions,
-      ...options,
-    };
-
+    this.options.toolbarOptions = { ...this.options.toolbarOptions, ...options };
     if (this.toolbar) {
-      // 如果工具栏存在，重新创建以应用新配置
       this.createToolbar();
     } else if (this.options.showToolbar) {
-      // 如果工具栏不存在但应该显示，创建工具栏
       this.createToolbar();
     }
   }
 
-  // 销毁编辑器
+  /** 获取底层 Tiptap Editor 实例（高级用法） */
+  getEditor(): Editor {
+    return this.editor;
+  }
+
+  /** 销毁编辑器，清理所有资源 */
   destroy(): void {
-    // 清理所有事件监听器
     this.eventManager.cleanup();
-
-    // 销毁工具栏
     this.destroyToolbar();
-
-    // 清理状态管理器
     StateManager.getInstance().cleanup();
-
-    // 清理编辑器容器
     this.cleanupEditorContainer();
-
-    // 销毁编辑器
     this.editor.destroy();
   }
 
-  // private setupClickToAddLine(): void {
-  //   // 监听编辑器容器的点击事件
-  //   this.eventManager.addEventListener(
-  //     this.container,
-  //     "click",
-  //     (event: Event) => {
-  //       const target = event.target as HTMLElement;
-  //       const editorElement = this.editor.view.dom;
-
-  //       // 检查点击是否在编辑器内容区域之外的空白处
-  //       if (target === this.container || target === editorElement) {
-  //         const rect = editorElement.getBoundingClientRect();
-  //         const clickY = (event as MouseEvent).clientY;
-
-  //         // 如果点击位置在编辑器内容的下方空白区域
-  //         if (clickY > rect.top && clickY < rect.bottom - 20) {
-  //           // 给一些容错空间
-  //           // 将光标移动到文档末尾并插入新段落
-  //           const endPos = this.editor.state.doc.content.size;
-  //           const lastNode = this.editor.state.doc.lastChild;
-  //           if (lastNode && lastNode.type.name === "paragraph") {
-  //             this.editor.commands.setTextSelection(endPos);
-  //           } else {
-  //             this.editor.commands.setTextSelection(endPos);
-  //             this.editor.commands.insertContent("<p></p>");
-  //           }
-  //           this.editor.commands.focus();
-  //         }
-  //       }
-  //     }
-  //   );
-  // }
-
   private cleanupEditorContainer(): void {
-    // 清理编辑器容器内的所有DOM元素
     if (this.container) {
       TextUtils.setHTML(this.container, "");
       StyleUtils.clearClasses(this.container);
@@ -506,39 +458,23 @@ export class RichTextEditor {
   private async handleImageFile(file: File, pos?: number): Promise<void> {
     try {
       let imageUrl: string;
-
-      // 如果有自定义上传方法，使用它
       if (this.options.toolbarOptions?.onImageUpload) {
         imageUrl = await this.options.toolbarOptions.onImageUpload(file);
       } else {
-        // 否则转换为base64
         imageUrl = await this.fileToBase64(file);
       }
 
-      // 插入图片到编辑器
       if (pos !== undefined) {
-        this.editor
-          .chain()
-          .focus()
-          .insertContentAt(pos, {
-            type: "image",
-            attrs: {
-              src: imageUrl,
-              alt: file.name,
-              title: file.name,
-            },
-          })
-          .run();
+        this.editor.chain().focus().insertContentAt(pos, {
+          type: "image",
+          attrs: { src: imageUrl, alt: file.name, title: file.name },
+        }).run();
       } else {
-        this.editor
-          .chain()
-          .focus()
-          .setImage({
-            src: imageUrl,
-            alt: file.name,
-            title: file.name,
-          })
-          .run();
+        this.editor.chain().focus().setImage({
+          src: imageUrl,
+          alt: file.name,
+          title: file.name,
+        }).run();
       }
     } catch (error) {
       console.error("图片上传失败:", error);
