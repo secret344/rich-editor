@@ -6,6 +6,7 @@ import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { ElementUtils, StyleUtils } from '@/core/dom/utils'
 import { EventManager } from '@/utils/EventManager'
+import { NotionContextMenu } from './NotionContextMenu'
 import type { Editor } from '@tiptap/core'
 import type { EditorView } from '@tiptap/pm/view'
 import type { Node as PMNode } from '@tiptap/pm/model'
@@ -17,110 +18,15 @@ export interface NotionModeOptions {
 
 const NOTION_MODE_KEY = new PluginKey('notionMode')
 
-/** 上下文菜单项 */
-interface ContextMenuItem {
-  id: string
-  label: string
-  icon: string
-  action: (editor: Editor, pos: number) => void
-}
+/** 菜单宽度（px）– 用于计算左侧定位偏移 */
+const FLOATING_MENU_WIDTH = 60
 
-/** 获取通用转换菜单项 */
-function getTurnIntoItems(): ContextMenuItem[] {
-  return [
-    {
-      id: 'turn-para',
-      label: '文本',
-      icon: 'T',
-      action: (e) => e.chain().focus().setParagraph().run(),
-    },
-    {
-      id: 'turn-h1',
-      label: '标题 1',
-      icon: 'H1',
-      action: (e) => e.chain().focus().setHeading({ level: 1 }).run(),
-    },
-    {
-      id: 'turn-h2',
-      label: '标题 2',
-      icon: 'H2',
-      action: (e) => e.chain().focus().setHeading({ level: 2 }).run(),
-    },
-    {
-      id: 'turn-h3',
-      label: '标题 3',
-      icon: 'H3',
-      action: (e) => e.chain().focus().setHeading({ level: 3 }).run(),
-    },
-    {
-      id: 'turn-bullet',
-      label: '无序列表',
-      icon: '•',
-      action: (e) => e.chain().focus().toggleBulletList().run(),
-    },
-    {
-      id: 'turn-ordered',
-      label: '有序列表',
-      icon: '1.',
-      action: (e) => e.chain().focus().toggleOrderedList().run(),
-    },
-    {
-      id: 'turn-quote',
-      label: '引用',
-      icon: '❝',
-      action: (e) => e.chain().focus().toggleBlockquote().run(),
-    },
-    {
-      id: 'turn-code',
-      label: '代码块',
-      icon: '</>',
-      action: (e) => e.chain().focus().toggleCodeBlock().run(),
-    },
-  ]
-}
-
-/** 获取块操作菜单项 */
-function getBlockActionItems(): ContextMenuItem[] {
-  return [
-    {
-      id: 'duplicate',
-      label: '复制块',
-      icon: '⎘',
-      action: (editor, pos) => {
-        const { state } = editor
-        const $pos = state.doc.resolve(pos + 1)
-        if ($pos.depth < 1) return
-        const blockPos = $pos.before(1)
-        const node = state.doc.nodeAt(blockPos)
-        if (!node) return
-        const insertPos = blockPos + node.nodeSize
-        editor.chain().focus().insertContentAt(insertPos, node.toJSON()).run()
-      },
-    },
-    {
-      id: 'delete',
-      label: '删除块',
-      icon: '✕',
-      action: (editor, pos) => {
-        const { state } = editor
-        const $pos = state.doc.resolve(pos + 1)
-        if ($pos.depth < 1) return
-        const blockPos = $pos.before(1)
-        const node = state.doc.nodeAt(blockPos)
-        if (!node) return
-        editor
-          .chain()
-          .focus()
-          .deleteRange({ from: blockPos, to: blockPos + node.nodeSize })
-          .run()
-      },
-    },
-  ]
-}
+/** 鼠标离开后隐藏菜单的延迟（ms） */
+const HIDE_DELAY_MS = 400
 
 /**
  * Notion 浮动菜单视图
- * 管理左侧浮动菜单的创建、定位和交互
+ * 管理左侧浮动菜单的创建、定位和交互，以及块的拖拽排序
  */
 class NotionFloatingMenuView {
   private editor: Editor
@@ -132,15 +38,15 @@ class NotionFloatingMenuView {
   private addBtnEl!: HTMLElement
   private dragHandleEl!: HTMLElement
 
-  // 当前悬停块
+  // 当前悬停块位置
   private currentBlockPos: number | null = null
 
   // 菜单悬停状态（防止移到菜单时菜单消失）
   private menuHovered = false
   private hideTimer: ReturnType<typeof setTimeout> | null = null
 
-  // 上下文菜单
-  private contextMenuEl: HTMLElement | null = null
+  // 上下文菜单（独立模块）
+  private contextMenu: NotionContextMenu
 
   // 拖拽状态
   private dragActive = false
@@ -153,6 +59,9 @@ class NotionFloatingMenuView {
   constructor(view: EditorView, editor: Editor) {
     this.view = view
     this.editor = editor
+    this.contextMenu = new NotionContextMenu(editor, this.eventManager, () =>
+      this.hideMenu()
+    )
     this.buildMenu()
     this.bindEvents()
   }
@@ -183,7 +92,7 @@ class NotionFloatingMenuView {
     this.dragHandleEl = ElementUtils.createElement({
       tagName: 'div',
       className: 'notion-drag-handle',
-      innerHTML: '&#x283F;', // ⠿ six-dot drag handle
+      innerHTML: '&#x283F;', // ⠿ six-dot braille pattern
       attributes: { title: '拖拽移动 / 点击查看操作' },
     })
 
@@ -198,7 +107,7 @@ class NotionFloatingMenuView {
   private bindEvents(): void {
     const editorDom = this.view.dom as HTMLElement
 
-    // 追踪编辑器内鼠标移动
+    // 追踪编辑器内鼠标移动以定位菜单
     this.eventManager.addEventListener(editorDom, 'mousemove', (e) =>
       this.onEditorMouseMove(e as MouseEvent)
     )
@@ -229,12 +138,12 @@ class NotionFloatingMenuView {
       this.onHandleClick(e as MouseEvent)
     )
 
-    // 拖拽手柄 mousedown（开始拖拽）
+    // 拖拽手柄 mousedown（启动拖拽排序）
     this.eventManager.addEventListener(this.dragHandleEl, 'mousedown', (e) =>
       this.onDragMouseDown(e as MouseEvent)
     )
 
-    // 点击文档关闭上下文菜单
+    // 点击文档其他区域关闭上下文菜单
     this.eventManager.addEventListener(document, 'click', (e) =>
       this.onDocumentClick(e as MouseEvent)
     )
@@ -259,7 +168,7 @@ class NotionFloatingMenuView {
       return
     }
 
-    // 找到顶层块（depth=1）
+    // 只处理顶层块（depth=1）
     if ($pos.depth === 0) {
       this.scheduleHide()
       return
@@ -279,10 +188,8 @@ class NotionFloatingMenuView {
   private scheduleHide(): void {
     if (this.hideTimer) clearTimeout(this.hideTimer)
     this.hideTimer = setTimeout(() => {
-      if (!this.menuHovered) {
-        this.hideMenu()
-      }
-    }, 400)
+      if (!this.menuHovered) this.hideMenu()
+    }, HIDE_DELAY_MS)
   }
 
   // ─── Menu Positioning ─────────────────────────────────────────────────────
@@ -294,10 +201,9 @@ class NotionFloatingMenuView {
     }
 
     const rect = blockDOM.getBoundingClientRect()
-    const MENU_WIDTH = 60
 
-    // 优先放到块左侧；若超出视口则放到块内部左边
-    let left = rect.left - MENU_WIDTH - 4
+    // 优先放到块左侧；若超出视口则贴块内部左边
+    let left = rect.left - FLOATING_MENU_WIDTH - 4
     if (left < 0) left = rect.left + 2
 
     StyleUtils.setStyles(this.menuEl, {
@@ -341,133 +247,17 @@ class NotionFloatingMenuView {
   private onHandleClick(e: MouseEvent): void {
     e.stopPropagation()
     if (this.dragActive) return
-    this.toggleContextMenu(e.clientX, e.clientY)
-  }
 
-  private toggleContextMenu(x: number, y: number): void {
-    this.closeContextMenu()
-    if (this.currentBlockPos === null) return
-
-    const capturedPos = this.currentBlockPos
-
-    // 使用与 BaseDropdownPanel / EnhancedDropdownMenu 相同的 bubble 风格
-    this.contextMenuEl = ElementUtils.createDiv({
-      className:
-        'rich:bg-white rich:border rich:border-gray-200 rich:rounded-md rich:shadow-lg rich:overflow-y-auto rich:py-1',
-    })
-    StyleUtils.setStyles(this.contextMenuEl, {
-      position: 'fixed',
-      zIndex: '200',
-      left: `${x}px`,
-      top: `${y}px`,
-      minWidth: '200px',
-      maxHeight: '320px',
-    })
-
-    // ── 转换为 ──────────────────────────────────────────
-    const turnIntoLabel = ElementUtils.createElement({
-      tagName: 'div',
-      className:
-        'rich:px-3 rich:pt-2 rich:pb-1 rich:text-xs rich:font-semibold rich:text-gray-400 rich:uppercase rich:tracking-wide',
-      textContent: '转换为',
-    })
-    ElementUtils.appendChild(this.contextMenuEl, turnIntoLabel)
-
-    getTurnIntoItems().forEach((item) => {
-      this.appendMenuItem(item, capturedPos)
-    })
-
-    // ── 分隔线 ──────────────────────────────────────────
-    const sep = ElementUtils.createElement({
-      tagName: 'div',
-      className: 'rich:border-t rich:border-gray-200 rich:my-1',
-    })
-    ElementUtils.appendChild(this.contextMenuEl, sep)
-
-    // ── 操作 ────────────────────────────────────────────
-    const actionsLabel = ElementUtils.createElement({
-      tagName: 'div',
-      className:
-        'rich:px-3 rich:pt-2 rich:pb-1 rich:text-xs rich:font-semibold rich:text-gray-400 rich:uppercase rich:tracking-wide',
-      textContent: '操作',
-    })
-    ElementUtils.appendChild(this.contextMenuEl, actionsLabel)
-
-    getBlockActionItems().forEach((item) => {
-      this.appendMenuItem(item, capturedPos)
-    })
-
-    document.body.appendChild(this.contextMenuEl)
-    this.adjustContextMenuPosition()
-  }
-
-  /** 向上下文菜单追加一个菜单项（bubble 风格） */
-  private appendMenuItem(item: ContextMenuItem, capturedPos: number): void {
-    const row = ElementUtils.createElement({
-      tagName: 'div',
-      className:
-        'rich:px-3 rich:py-2 rich:text-sm rich:cursor-pointer rich:flex rich:items-center rich:gap-2 rich:transition-colors hover:rich:bg-gray-100',
-    })
-
-    const icon = ElementUtils.createElement({
-      tagName: 'span',
-      className: 'rich:text-base rich:text-gray-600',
-      textContent: item.icon,
-    })
-    const label = ElementUtils.createElement({
-      tagName: 'span',
-      textContent: item.label,
-    })
-
-    ElementUtils.appendChild(row, icon)
-    ElementUtils.appendChild(row, label)
-
-    this.eventManager.addEventListener(row, 'mousedown', (ev) => {
-      ev.preventDefault()
-      ev.stopPropagation()
-      this.closeContextMenu()
-      this.hideMenu()
-      item.action(this.editor, capturedPos)
-    })
-
-    ElementUtils.appendChild(this.contextMenuEl!, row)
-  }
-
-  /** 防止菜单超出视口 */
-  private adjustContextMenuPosition(): void {
-    if (!this.contextMenuEl) return
-    const rect = this.contextMenuEl.getBoundingClientRect()
-    if (rect.right > window.innerWidth) {
-      StyleUtils.setStyle(
-        this.contextMenuEl,
-        'left',
-        `${window.innerWidth - rect.width - 8}px`
-      )
-    }
-    if (rect.bottom > window.innerHeight) {
-      StyleUtils.setStyle(
-        this.contextMenuEl,
-        'top',
-        `${window.innerHeight - rect.height - 8}px`
-      )
-    }
-  }
-
-  private closeContextMenu(): void {
-    if (this.contextMenuEl) {
-      if (this.contextMenuEl.parentNode) {
-        this.contextMenuEl.parentNode.removeChild(this.contextMenuEl)
-      }
-      this.contextMenuEl = null
+    if (this.contextMenu.isOpen()) {
+      this.contextMenu.close()
+    } else if (this.currentBlockPos !== null) {
+      this.contextMenu.open(e.clientX, e.clientY, this.currentBlockPos)
     }
   }
 
   private onDocumentClick(e: MouseEvent): void {
-    if (
-      this.contextMenuEl &&
-      !this.contextMenuEl.contains(e.target as Node)
-    ) {
-      this.closeContextMenu()
+    if (this.contextMenu.isOpen() && !this.contextMenu.contains(e.target as Node)) {
+      this.contextMenu.close()
     }
   }
 
@@ -494,7 +284,7 @@ class NotionFloatingMenuView {
 
     StyleUtils.addClass(this.dragHandleEl, 'notion-drag-handle--dragging')
 
-    // 创建拖拽指示线
+    // 创建拖拽放置指示线
     this.dropIndicatorEl = ElementUtils.createDiv({ className: 'notion-drop-indicator' })
     StyleUtils.setStyles(this.dropIndicatorEl, {
       position: 'fixed',
@@ -563,7 +353,6 @@ class NotionFloatingMenuView {
   private onDragMouseUp(_e: MouseEvent): void {
     if (!this.dragActive) return
 
-    // 执行移动
     if (
       this.dropTargetPos !== null &&
       this.dragSourcePos !== null &&
@@ -572,7 +361,6 @@ class NotionFloatingMenuView {
       this.executeBlockMove()
     }
 
-    // 清理拖拽状态
     this.dragActive = false
     this.dragSourcePos = null
     this.dragNode = null
@@ -581,9 +369,7 @@ class NotionFloatingMenuView {
     StyleUtils.removeClass(this.dragHandleEl, 'notion-drag-handle--dragging')
 
     if (this.dropIndicatorEl) {
-      if (this.dropIndicatorEl.parentNode) {
-        this.dropIndicatorEl.parentNode.removeChild(this.dropIndicatorEl)
-      }
+      this.dropIndicatorEl.parentNode?.removeChild(this.dropIndicatorEl)
       this.dropIndicatorEl = null
     }
   }
@@ -594,29 +380,21 @@ class NotionFloatingMenuView {
     const targetPos = this.dropTargetPos!
     const node = this.dragNode!
 
-    // 不允许移动到自身
     if (targetPos === sourcePos) return
 
     const sourceEnd = sourcePos + node.nodeSize
 
-    // 计算插入位置
-    let insertPos: number
-    if (this.dropBefore) {
-      insertPos = targetPos
-    } else {
-      const targetNode = state.doc.nodeAt(targetPos)
-      insertPos = targetPos + (targetNode ? targetNode.nodeSize : 0)
-    }
+    // 计算插入位置（目标在源之后时需减去源节点大小）
+    let insertPos = this.dropBefore
+      ? targetPos
+      : targetPos + (state.doc.nodeAt(targetPos)?.nodeSize ?? 0)
 
-    // 如果目标在源的后面，删除后位置要调整
     const adjustedInsertPos =
       insertPos > sourceEnd ? insertPos - node.nodeSize : insertPos
 
-    // 不允许移动到相同位置（调整后）
     if (adjustedInsertPos === sourcePos) return
 
     const tr = state.tr
-    // 先删除，再插入
     tr.delete(sourcePos, sourceEnd)
     tr.insert(adjustedInsertPos, node)
     dispatch(tr)
@@ -625,16 +403,14 @@ class NotionFloatingMenuView {
   // ─── Lifecycle ────────────────────────────────────────────────────────────
 
   update(_view: EditorView): void {
-    // No-op: positioning happens on mouse move
+    // No-op: positioning is driven by mousemove events
   }
 
   destroy(): void {
     if (this.hideTimer) clearTimeout(this.hideTimer)
-    this.closeContextMenu()
-    if (this.menuEl.parentNode) this.menuEl.parentNode.removeChild(this.menuEl)
-    if (this.dropIndicatorEl?.parentNode) {
-      this.dropIndicatorEl.parentNode.removeChild(this.dropIndicatorEl)
-    }
+    this.contextMenu.close()
+    this.menuEl.parentNode?.removeChild(this.menuEl)
+    this.dropIndicatorEl?.parentNode?.removeChild(this.dropIndicatorEl)
     this.eventManager.cleanup()
   }
 }
