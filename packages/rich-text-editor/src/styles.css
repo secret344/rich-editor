@@ -211,6 +211,27 @@
   color: #fff;
 }
 
+/* AI 按钮在 bubble 菜单中的扩展宽度 */
+.rich-bubble-btn--ai {
+  width: auto;
+  padding: 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  color: #a5b4fc;
+}
+.rich-bubble-btn--ai:hover {
+  color: #c7d2fe;
+}
+
+/* bubble 菜单内分隔线 */
+.rich-bubble-sep {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
 /* 拖拽放置指示线 */
 .notion-drop-indicator {
   height: 3px;
@@ -222,4 +243,253 @@
 /* Notion 模式下编辑器内容区增加左边距，为浮动菜单留出空间 */
 .rich-text-editor.notion-mode-active .ProseMirror {
   padding-left: 72px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AI 助手 – 浮动触发按钮、AI 面板、操作按钮、结果区域
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 浮动 AI 触发按钮（选中文本后出现在选区右侧） */
+.rich-ai-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border: none;
+  border-radius: 6px;
+  background: #4f46e5;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+  transition: background 0.1s, box-shadow 0.1s;
+  user-select: none;
+}
+.rich-ai-trigger:hover {
+  background: #4338ca;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.5);
+}
+
+/* AI 面板容器 */
+.rich-ai-panel {
+  width: 320px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
+  overflow: hidden;
+}
+
+/* 面板头部 */
+.rich-ai-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.rich-ai-panel__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+.rich-ai-panel__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.1s, color 0.1s;
+}
+.rich-ai-panel__close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* 选中文本提示行 */
+.rich-ai-panel__hint {
+  padding: 6px 14px;
+  font-size: 11px;
+  color: #6b7280;
+  background: #f9fafb;
+  border-bottom: 1px solid #f3f4f6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 快捷操作按钮网格 */
+.rich-ai-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 12px 6px;
+}
+
+/* 单个 AI 操作按钮 */
+.rich-ai-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+  white-space: nowrap;
+}
+.rich-ai-action-btn:hover {
+  background: #f5f3ff;
+  border-color: #a5b4fc;
+  color: #4338ca;
+}
+.rich-ai-action-btn__icon {
+  font-size: 13px;
+}
+.rich-ai-action-btn__label {
+  font-size: 12px;
+}
+
+/* 自定义提示词输入行 */
+.rich-ai-panel__prompt-row {
+  display: flex;
+  gap: 6px;
+  padding: 6px 12px 10px;
+  border-top: 1px solid #f3f4f6;
+}
+.rich-ai-panel__prompt-input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #374151;
+  outline: none;
+  transition: border-color 0.1s;
+}
+.rich-ai-panel__prompt-input:focus {
+  border-color: #a5b4fc;
+}
+.rich-ai-panel__send-btn {
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 6px;
+  background: #4f46e5;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+.rich-ai-panel__send-btn:hover {
+  background: #4338ca;
+}
+
+/* 结果区域 */
+.rich-ai-panel__result {
+  border-top: 1px solid #f3f4f6;
+  padding: 10px 12px;
+}
+
+/* 加载状态 */
+.rich-ai-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+.rich-ai-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  animation: rich-ai-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes rich-ai-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 错误提示 */
+.rich-ai-error {
+  font-size: 12px;
+  color: #dc2626;
+  padding: 2px 0;
+}
+
+/* AI 结果文本预览 */
+.rich-ai-result__text {
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.6;
+  max-height: 120px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 8px;
+  background: #f9fafb;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 结果操作按钮行 */
+.rich-ai-result__actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.rich-ai-result__btn {
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+.rich-ai-result__btn--primary {
+  background: #4f46e5;
+  color: #fff;
+}
+.rich-ai-result__btn--primary:hover {
+  background: #4338ca;
+}
+.rich-ai-result__btn--secondary {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+.rich-ai-result__btn--secondary:hover {
+  background: #c7d2fe;
+}
+.rich-ai-result__btn--ghost {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+.rich-ai-result__btn--ghost:hover {
+  background: #e5e7eb;
+  color: #374151;
 }

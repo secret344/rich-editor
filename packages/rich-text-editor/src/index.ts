@@ -11,6 +11,9 @@ export type {
   SlashCommandItem,
   SlashCommandOptions,
   NotionModeOptions,
+  AIOptions,
+  AIContext,
+  AIActionDefinition,
 } from '@/core/RichTextEditor'
 
 // 菜单系统
@@ -21,6 +24,7 @@ export * from '@/core/menu/components'
 export { createMentionExtension } from '@/core/extensions/mention'
 export { createSlashCommandExtension, getDefaultSlashCommands } from '@/core/extensions/slash-command'
 export { createNotionModeExtension } from '@/core/extensions/notion-mode'
+export { createAIExtension, getDefaultAIActions } from '@/core/extensions/ai'
 
 // 工具类
 export { EventManager } from '@/utils/EventManager'

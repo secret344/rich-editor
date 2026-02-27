@@ -5,7 +5,7 @@
         富文本编辑器
       </h1>
       <p class="text-center text-gray-500 text-sm mb-8">
-        支持 Mention(@提及)、斜杠命令(/)、音视频、全屏、Notion 模式等功能
+        支持 Mention(@提及)、斜杠命令(/)、音视频、全屏、Notion 模式、AI 助手等功能
       </p>
 
       <!-- Notion 模式切换 -->
@@ -29,6 +29,13 @@
           <span v-if="notionModeActive" class="text-xs text-blue-600 font-medium">已启用（悬停块左侧可见操作菜单）</span>
         </label>
       </div>
+
+      <!-- AI 助手提示 -->
+      <div class="flex justify-center mb-4">
+        <p class="text-xs text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2">
+          ✨ AI 助手已启用：选中文本后点击右侧"✨ AI"按钮，或使用快捷键 <kbd class="font-mono bg-white border rounded px-1">Ctrl+Shift+A</kbd> 打开 AI 面板
+        </p>
+      </div>
       
       <!-- 富文本编辑器 -->
       <VanillaRichTextEditor 
@@ -41,6 +48,7 @@
         :mention-options="mentionOptions"
         :slash-command-options="slashCommandOptions"
         :notion-mode="notionModeActive"
+        :ai-options="aiOptions"
         @focus="handleFocus"
         @blur="handleBlur"
         @selectionUpdate="handleSelectionUpdate"
@@ -153,6 +161,42 @@ const slashCommandOptions = ref({
   includeDefaults: true,
   // 可以添加自定义命令
   items: []
+})
+
+// AI 助手配置
+// onAIAction 是一个 mock 实现，实际使用时替换为真实 AI API 调用
+const aiOptions = ref({
+  includeDefaultActions: true,
+  promptPlaceholder: '例如：将这段话改写得更正式…',
+  onAIAction: async (actionId, ctx) => {
+    // ── Mock AI 响应（演示用）──────────────────────────────────────────────
+    // 在实际项目中，将此处替换为对 OpenAI / 自建 AI 服务的 fetch 调用，例如：
+    //
+    //   const res = await fetch('/api/ai', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ action: actionId, text: ctx.selectedText }),
+    //   })
+    //   const data = await res.json()
+    //   return data.result
+    //
+    await new Promise(r => setTimeout(r, 800)) // 模拟网络延迟
+
+    const text = ctx.selectedText || ctx.blockText || '（无内容）'
+    const map = {
+      'improve':      `[优化后] ${text}`,
+      'fix-grammar':  `[已修正语法] ${text}`,
+      'summarize':    `[摘要] ${text.slice(0, 40)}…`,
+      'expand':       `${text}\n\n（此处是对上述内容的进一步展开与补充说明。）`,
+      'translate':    `[Translation] ${text}`,
+      'continue':     `${text}\n\n（这是 AI 续写的内容，请在此基础上继续编辑。）`,
+    }
+    if (actionId.startsWith('custom:')) {
+      const prompt = actionId.slice(7)
+      return `[自定义指令 "${prompt}"] ${text}`
+    }
+    return map[actionId] ?? `[${actionId}] ${text}`
+  }
 })
 
 const handleFocus = () => {}
