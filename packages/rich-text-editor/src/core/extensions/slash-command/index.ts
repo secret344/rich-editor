@@ -17,6 +17,8 @@ export interface SlashCommandOptions {
   items?: SlashCommandItem[]
   /** Whether to include the default built-in commands */
   includeDefaults?: boolean
+  /** Text shown when no command matches the query (default: 'No commands found') */
+  emptyText?: string
 }
 
 const getDefaultItems = (): SlashCommandItem[] => [
@@ -93,6 +95,7 @@ export function createSlashCommandExtension(options: SlashCommandOptions = {}) {
     ...(options.includeDefaults !== false ? getDefaultItems() : []),
     ...(options.items || []),
   ]
+  const emptyText = options.emptyText ?? 'No commands found'
 
   return Extension.create({
     name: 'slashCommand',
@@ -124,7 +127,7 @@ export function createSlashCommandExtension(options: SlashCommandOptions = {}) {
           const empty = ElementUtils.createElement({
             tagName: 'div',
             className: 'rich:px-3 rich:py-2 rich:text-sm rich:text-gray-500',
-            textContent: '无匹配命令',
+            textContent: emptyText,
           })
           ElementUtils.appendChild(popup, empty)
           return

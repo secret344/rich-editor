@@ -17,6 +17,8 @@ export interface MentionOptions {
   HTMLAttributes?: Record<string, any>
   /** Callback when a mention is selected */
   onMentionSelect?: (item: MentionItem) => void
+  /** Text shown when no match is found (default: 'No results') */
+  emptyText?: string
 }
 
 /**
@@ -27,6 +29,7 @@ export function createMentionExtension(options: MentionOptions = {}) {
     char = '@',
     HTMLAttributes = {},
     onMentionSelect,
+    emptyText = 'No results',
   } = options
 
   const resolveItems = async (query: string): Promise<MentionItem[]> => {
@@ -72,7 +75,7 @@ export function createMentionExtension(options: MentionOptions = {}) {
             const empty = ElementUtils.createElement({
               tagName: 'div',
               className: 'rich:px-3 rich:py-2 rich:text-sm rich:text-gray-500',
-              textContent: '没有匹配的用户',
+              textContent: emptyText,
             })
             ElementUtils.appendChild(popup, empty)
             return
