@@ -48,6 +48,7 @@ import AudioExtension from "@/core/extensions/audio";
 import VideoExtension from "@/core/extensions/video";
 import { createMentionExtension, type MentionItem, type MentionOptions } from "@/core/extensions/mention";
 import { createSlashCommandExtension, type SlashCommandItem, type SlashCommandOptions } from "@/core/extensions/slash-command";
+import { createNotionModeExtension, type NotionModeOptions } from "@/core/extensions/notion-mode";
 
 
 /** 富文本编辑器配置选项 */
@@ -78,6 +79,10 @@ export interface RichTextEditorOptions {
   mentionOptions?: MentionOptions;
   /** Slash 命令配置，传入则启用 Notion-like 斜杠命令 */
   slashCommandOptions?: SlashCommandOptions;
+  /** 是否启用 Notion 模式（左侧浮动菜单 + 拖拽排序） */
+  notionMode?: boolean;
+  /** Notion 模式扩展配置 */
+  notionModeOptions?: NotionModeOptions;
 }
 
 /** 工具栏配置选项 */
@@ -147,7 +152,7 @@ export interface ToolbarButton {
 }
 
 // Re-export extension types for consumers
-export type { MentionItem, MentionOptions, SlashCommandItem, SlashCommandOptions };
+export type { MentionItem, MentionOptions, SlashCommandItem, SlashCommandOptions, NotionModeOptions };
 
 /**
  * 富文本编辑器主类
@@ -266,6 +271,11 @@ export class RichTextEditor {
 
     if (this.options.slashCommandOptions !== undefined) {
       extensions.push(createSlashCommandExtension(this.options.slashCommandOptions));
+    }
+
+    if (this.options.notionMode) {
+      extensions.push(createNotionModeExtension(this.options.notionModeOptions || {}));
+      StyleUtils.addClass(this.container, "notion-mode-active");
     }
 
     this.editor = new Editor({

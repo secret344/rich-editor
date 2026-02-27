@@ -5,18 +5,42 @@
         富文本编辑器
       </h1>
       <p class="text-center text-gray-500 text-sm mb-8">
-        支持 Mention(@提及)、斜杠命令(/)、音视频、全屏等功能
+        支持 Mention(@提及)、斜杠命令(/)、音视频、全屏、Notion 模式等功能
       </p>
+
+      <!-- Notion 模式切换 -->
+      <div class="flex justify-center mb-4">
+        <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+          <span class="text-sm text-gray-600 font-medium">Notion 模式</span>
+          <button
+            @click="toggleNotionMode"
+            :class="[
+              'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+              notionModeActive ? 'bg-blue-600' : 'bg-gray-300'
+            ]"
+          >
+            <span
+              :class="[
+                'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow',
+                notionModeActive ? 'translate-x-6' : 'translate-x-1'
+              ]"
+            ></span>
+          </button>
+          <span v-if="notionModeActive" class="text-xs text-blue-600 font-medium">已启用（悬停块左侧可见操作菜单）</span>
+        </label>
+      </div>
       
       <!-- 富文本编辑器 -->
       <VanillaRichTextEditor 
         ref="editorRef"
+        :key="editorKey"
         v-if="showEditor"
         v-model="content" 
         :show-toolbar="true"
         :toolbar-options="toolbarOptions"
         :mention-options="mentionOptions"
         :slash-command-options="slashCommandOptions"
+        :notion-mode="notionModeActive"
         @focus="handleFocus"
         @blur="handleBlur"
         @selectionUpdate="handleSelectionUpdate"
@@ -74,6 +98,8 @@ const content = ref('')
 const showPreview = ref(false)
 const editorRef = ref(null)
 const showEditor = ref(true)
+const editorKey = ref(0)
+const notionModeActive = ref(false)
 
 // 工具栏配置
 const toolbarOptions = ref({
@@ -131,7 +157,20 @@ const slashCommandOptions = ref({
 
 const handleFocus = () => {}
 const handleBlur = () => {}
-const handleSelectionUpdate = (selection) => {}
+const handleSelectionUpdate = () => {}
+
+const toggleNotionMode = () => {
+  // 重新挂载编辑器以切换 notion 模式
+  const savedContent = editorRef.value?.getHTML() || content.value
+  notionModeActive.value = !notionModeActive.value
+  editorKey.value++
+  // 下一个 tick 后还原内容
+  setTimeout(() => {
+    if (savedContent && editorRef.value) {
+      editorRef.value.setHTML(savedContent)
+    }
+  }, 50)
+}
 
 const exportContent = () => {
   if (content.value) {

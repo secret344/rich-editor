@@ -104,3 +104,130 @@
 .rich-text-editor .ProseMirror mark {
   @apply rich:px-1 rich:rounded;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Notion 模式 – 浮动菜单、拖拽手柄、上下文菜单、拖拽指示线
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 左侧浮动菜单容器 */
+.notion-floating-menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.notion-floating-menu:hover,
+.notion-floating-menu[style*="flex"] {
+  opacity: 1;
+}
+
+/* 添加按钮 */
+.notion-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.1s, color 0.1s;
+}
+.notion-add-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #e5e7eb;
+}
+
+/* 拖拽手柄 */
+.notion-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  color: #9ca3af;
+  font-size: 14px;
+  cursor: grab;
+  user-select: none;
+  transition: background 0.1s, color 0.1s;
+}
+.notion-drag-handle:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+.notion-drag-handle--dragging {
+  cursor: grabbing;
+  opacity: 0.6;
+}
+
+/* 上下文菜单 */
+.notion-context-menu {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  min-width: 160px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.notion-context-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #374151;
+  transition: background 0.1s;
+}
+.notion-context-menu__item:hover {
+  background: #f3f4f6;
+}
+
+.notion-context-menu__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.notion-context-menu__label {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.notion-context-menu__sep {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 4px 0;
+}
+
+/* 拖拽放置指示线 */
+.notion-drop-indicator {
+  height: 3px;
+  background: #3b82f6;
+  border-radius: 2px;
+  box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+}
+
+/* Notion 模式下编辑器内容区增加左边距，为浮动菜单留出空间 */
+.rich-text-editor.notion-mode-active .ProseMirror {
+  padding-left: 72px;
+}
