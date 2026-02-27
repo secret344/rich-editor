@@ -22,6 +22,8 @@ export { createSlashCommandExtension, getDefaultSlashCommands } from '@/core/ext
 
 // 工具类
 export { EventManager } from '@/utils/EventManager'
+export { ShortcutManager } from '@/utils/ShortcutManager'
+export type { ShortcutDefinition } from '@/utils/ShortcutManager'
 
 // DOM 操作工具
 export * from '@/core/dom'
