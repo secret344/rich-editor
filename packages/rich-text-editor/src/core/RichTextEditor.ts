@@ -48,6 +48,8 @@ import AudioExtension from "@/core/extensions/audio";
 import VideoExtension from "@/core/extensions/video";
 import { createMentionExtension, type MentionItem, type MentionOptions } from "@/core/extensions/mention";
 import { createSlashCommandExtension, type SlashCommandItem, type SlashCommandOptions } from "@/core/extensions/slash-command";
+import { createNotionModeExtension, type NotionModeOptions } from "@/core/extensions/notion-mode";
+import { createBubbleMenuExtension, type BubbleMenuOptions } from "@/core/extensions/bubble";
 
 
 /** 富文本编辑器配置选项 */
@@ -78,6 +80,14 @@ export interface RichTextEditorOptions {
   mentionOptions?: MentionOptions;
   /** Slash 命令配置，传入则启用 Notion-like 斜杠命令 */
   slashCommandOptions?: SlashCommandOptions;
+  /** 是否启用 Notion 模式（左侧浮动菜单 + 拖拽排序） */
+  notionMode?: boolean;
+  /** Notion 模式扩展配置 */
+  notionModeOptions?: NotionModeOptions;
+  /** 是否启用 Bubble 菜单（选中文本时显示浮动格式工具栏），默认为 true */
+  bubbleMenu?: boolean;
+  /** Bubble 菜单扩展配置 */
+  bubbleMenuOptions?: BubbleMenuOptions;
 }
 
 /** 工具栏配置选项 */
@@ -147,7 +157,7 @@ export interface ToolbarButton {
 }
 
 // Re-export extension types for consumers
-export type { MentionItem, MentionOptions, SlashCommandItem, SlashCommandOptions };
+export type { MentionItem, MentionOptions, SlashCommandItem, SlashCommandOptions, NotionModeOptions, BubbleMenuOptions };
 
 /**
  * 富文本编辑器主类
@@ -266,6 +276,15 @@ export class RichTextEditor {
 
     if (this.options.slashCommandOptions !== undefined) {
       extensions.push(createSlashCommandExtension(this.options.slashCommandOptions));
+    }
+
+    if (this.options.notionMode) {
+      extensions.push(createNotionModeExtension(this.options.notionModeOptions || {}));
+      StyleUtils.addClass(this.container, "notion-mode-active");
+    }
+
+    if (this.options.bubbleMenu !== false) {
+      extensions.push(createBubbleMenuExtension(this.options.bubbleMenuOptions || {}));
     }
 
     this.editor = new Editor({

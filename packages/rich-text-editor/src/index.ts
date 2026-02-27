@@ -10,6 +10,7 @@ export type {
   MentionOptions,
   SlashCommandItem,
   SlashCommandOptions,
+  NotionModeOptions,
 } from '@/core/RichTextEditor'
 
 // 菜单系统
@@ -19,6 +20,7 @@ export * from '@/core/menu/components'
 // 扩展
 export { createMentionExtension } from '@/core/extensions/mention'
 export { createSlashCommandExtension, getDefaultSlashCommands } from '@/core/extensions/slash-command'
+export { createNotionModeExtension } from '@/core/extensions/notion-mode'
 
 // 工具类
 export { EventManager } from '@/utils/EventManager'
