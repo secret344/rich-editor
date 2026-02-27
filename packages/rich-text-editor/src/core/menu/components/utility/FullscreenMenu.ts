@@ -1,18 +1,22 @@
 import { EventManager } from '@/utils/EventManager'
+import { ShortcutManager } from '@/utils/ShortcutManager'
 import { ButtonUtils, ElementUtils, StyleUtils } from '@/core/dom'
 
 export class FullscreenMenu {
+  private static instanceCounter = 0
   private container: HTMLElement
   private editorRoot: HTMLElement
   private eventManager: EventManager
   private isFullscreen: boolean = false
   private button: HTMLButtonElement | null = null
   private originalStyles: { width: string; height: string; position: string; zIndex: string; top: string; left: string; background: string } | null = null
+  private shortcutId: string
 
   constructor(container: HTMLElement, eventManager: EventManager, editorRoot: HTMLElement) {
     this.container = container
     this.eventManager = eventManager
     this.editorRoot = editorRoot
+    this.shortcutId = `fullscreen-escape-${FullscreenMenu.instanceCounter++}`
     this.render()
     this.setupEscListener()
   }
@@ -32,9 +36,16 @@ export class FullscreenMenu {
   }
 
   private setupEscListener(): void {
-    this.eventManager.addKeydownListener(document, (e) => {
-      if (e.key === 'Escape' && this.isFullscreen) {
-        this.exitFullscreen()
+    ShortcutManager.getInstance().register(this.shortcutId, {
+      key: 'Escape',
+      priority: 1,
+      description: '退出全屏',
+      handler: () => {
+        if (this.isFullscreen) {
+          this.exitFullscreen()
+          return true
+        }
+        return false
       }
     })
   }
@@ -101,6 +112,7 @@ export class FullscreenMenu {
     if (this.isFullscreen) {
       this.exitFullscreen()
     }
+    ShortcutManager.getInstance().unregister(this.shortcutId)
     this.eventManager.cleanupForElement(this.container)
     if (this.container) {
       this.container.innerHTML = ''

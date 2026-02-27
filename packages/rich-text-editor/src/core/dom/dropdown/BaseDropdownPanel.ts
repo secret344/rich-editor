@@ -1,4 +1,5 @@
 import { EventManager } from "@/utils/EventManager";
+import { ShortcutManager } from "@/utils/ShortcutManager";
 import { debounce } from "lodash";
 import { ElementUtils } from "@/core/dom/utils/ElementUtils";
 import {
@@ -46,6 +47,10 @@ export abstract class BaseDropdownPanel {
   // 全局菜单管理
   private static openMenus: Set<BaseDropdownPanel> = new Set();
 
+  // 每个实例的唯一快捷键 ID
+  private static instanceCounter = 0;
+  private readonly shortcutId: string;
+
   constructor(container: HTMLElement, options: BaseDropdownOptions) {
     this.container = container;
     this.options = {
@@ -56,6 +61,7 @@ export abstract class BaseDropdownPanel {
       ...options,
     };
     this.eventManager = new EventManager();
+    this.shortcutId = `dropdown-escape-${BaseDropdownPanel.instanceCounter++}`;
     this.debouncedUpdatePosition = debounce(
       async () => await this.updatePosition(),
       16
@@ -236,15 +242,6 @@ export abstract class BaseDropdownPanel {
       });
     }
 
-    // ESC 键关闭面板
-    if (this.options.closeOnEscape) {
-      this.eventManager.addKeydownListener(document, (e) => {
-        if (e.key === "Escape" && this.isVisible) {
-          this.hide();
-        }
-      });
-    }
-
     // 窗口大小改变时重新定位
     this.eventManager.addResizeListener(async () => {
       if (this.isVisible) {
@@ -268,6 +265,22 @@ export abstract class BaseDropdownPanel {
 
     // 每次显示时都重新绑定事件，确保事件监听器正常工作
     this.bindEvents();
+
+    // 注册 ESC 快捷键（高优先级，优先于全屏等其他 Escape 处理器）
+    if (this.options.closeOnEscape) {
+      ShortcutManager.getInstance().register(this.shortcutId, {
+        key: 'Escape',
+        priority: 10,
+        description: '关闭下拉面板',
+        handler: () => {
+          if (this.isVisible) {
+            this.hide();
+            return true;
+          }
+          return false;
+        }
+      });
+    }
 
     this.isVisible = true;
     this.panel.style.setProperty("display", "block", "important");
@@ -293,6 +306,11 @@ export abstract class BaseDropdownPanel {
     this.isVisible = false;
     if (this.panel) {
       this.panel.style.display = "none";
+    }
+
+    // 取消注册 ESC 快捷键
+    if (this.options.closeOnEscape) {
+      ShortcutManager.getInstance().unregister(this.shortcutId);
     }
 
     // 清理ResizeObserver
