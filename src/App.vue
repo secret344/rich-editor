@@ -1,9 +1,12 @@
 <template>
   <div class="min-h-screen bg-gray-100 py-8">
     <div class="max-w-5xl mx-auto px-4">
-      <h1 class="text-4xl font-bold text-center text-gray-800 mb-8">
+      <h1 class="text-4xl font-bold text-center text-gray-800 mb-2">
         富文本编辑器
       </h1>
+      <p class="text-center text-gray-500 text-sm mb-8">
+        支持 Mention(@提及)、斜杠命令(/)、音视频、全屏等功能
+      </p>
       
       <!-- 富文本编辑器 -->
       <VanillaRichTextEditor 
@@ -12,46 +15,48 @@
         v-model="content" 
         :show-toolbar="true"
         :toolbar-options="toolbarOptions"
+        :mention-options="mentionOptions"
+        :slash-command-options="slashCommandOptions"
         @focus="handleFocus"
         @blur="handleBlur"
         @selectionUpdate="handleSelectionUpdate"
       />
       
-      <!-- 内容预览区域（可选） -->
-       <div v-if="showPreview && content" class="mt-8">
-         <h2 class="text-2xl font-semibold text-gray-700 mb-4">内容预览</h2>
-         <div class="bg-white rounded-lg shadow-lg p-6 prose prose-lg max-w-none" v-html="content"></div>
-       </div>
-       
-       <!-- 控制按钮 -->
-       <div class="mt-6 flex justify-center gap-4">
-         <button 
-           @click="showPreview = !showPreview"
-           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-         >
-           {{ showPreview ? '隐藏预览' : '显示预览' }}
-         </button>
+      <!-- 内容预览区域 -->
+      <div v-if="showPreview && content" class="mt-8">
+        <h2 class="text-2xl font-semibold text-gray-700 mb-4">内容预览</h2>
+        <div class="bg-white rounded-lg shadow-lg p-6 prose prose-lg max-w-none" v-html="content"></div>
+      </div>
+      
+      <!-- 控制按钮 -->
+      <div class="mt-6 flex flex-wrap justify-center gap-3">
+        <button 
+          @click="showPreview = !showPreview"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+        >
+          {{ showPreview ? '隐藏预览' : '显示预览' }}
+        </button>
         <button 
           @click="exportContent"
-          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
         >
           导出HTML
         </button>
         <button 
           @click="clearContent"
-          class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
         >
           清空内容
         </button>
         <button 
           @click="toggleToolbar"
-          class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
         >
           切换工具栏
         </button>
         <button 
           @click="showEditor = !showEditor"
-          class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+          class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
         >
           切换编辑器
         </button>
@@ -77,8 +82,12 @@ const toolbarOptions = ref({
   showLists: true,
   showBlocks: true,
   showMedia: true,
+  showVideo: true,
+  showAudio: true,
   showColors: true,
   showTables: true,
+  showEmoji: true,
+  showFullscreen: true,
   customButtons: [
     {
       id: 'custom-undo',
@@ -97,20 +106,33 @@ const toolbarOptions = ref({
   ]
 })
 
-// 处理焦点事件
-const handleFocus = () => {
-  // 编辑器获得焦点
-}
+// Mention 配置（@提及功能）
+const mentionOptions = ref({
+  char: '@',
+  items: [
+    { id: '1', label: '张三' },
+    { id: '2', label: '李四' },
+    { id: '3', label: '王五' },
+    { id: '4', label: '赵六' },
+    { id: '5', label: 'Alice' },
+    { id: '6', label: 'Bob' },
+  ],
+  onMentionSelect: (item) => {
+    console.log('选中用户:', item)
+  }
+})
 
-const handleBlur = () => {
-  // 编辑器失去焦点
-}
+// Slash 命令配置（类 Notion 模式）
+const slashCommandOptions = ref({
+  includeDefaults: true,
+  // 可以添加自定义命令
+  items: []
+})
 
-const handleSelectionUpdate = (selection) => {
-  // 选择更新处理
-}
+const handleFocus = () => {}
+const handleBlur = () => {}
+const handleSelectionUpdate = (selection) => {}
 
-// 导出内容
 const exportContent = () => {
   if (content.value) {
     const blob = new Blob([content.value], { type: 'text/html' })
@@ -127,23 +149,19 @@ const exportContent = () => {
   }
 }
 
-// 清空内容
 const clearContent = () => {
   if (confirm('确定要清空所有内容吗？')) {
     editorRef.value?.clear()
   }
 }
 
-// 切换工具栏
 const toolbarVisible = ref(true)
 const toggleToolbar = () => {
   if (editorRef.value) {
     if (toolbarVisible.value) {
-      // 隐藏工具栏
       editorRef.value.hideToolbar()
       toolbarVisible.value = false
     } else {
-      // 显示工具栏
       editorRef.value.showToolbar()
       toolbarVisible.value = true
     }

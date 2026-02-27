@@ -20,10 +20,13 @@ import {
   CodeBlockMenu,
   BlockquoteMenu,
   FontSizeMenu,
-  LineHeightMenu
+  LineHeightMenu,
+  FullscreenMenu,
 } from '@/core/menu/components'
 import { LinkMenu } from '@/core/menu/components/media/LinkMenu'
 import { ImageMenu } from '@/core/menu/components/media/ImageMenu'
+import { VideoMenu } from '@/core/menu/components/media/VideoMenu'
+import { AudioMenu } from '@/core/menu/components/media/AudioMenu'
 import { EmojiMenu } from '@/core/menu/components/text/EmojiMenu'
 
 /**
@@ -51,6 +54,8 @@ export class MenuManager {
       showLists: true,
       showBlocks: true,
       showMedia: true,
+      showVideo: true,
+      showAudio: true,
       showColors: true,
       showTables: true,
       showHistory: true,
@@ -62,6 +67,7 @@ export class MenuManager {
       showFontSize: true,
       showLineHeight: true,
       showEmoji: true,
+      showFullscreen: true,
       ...options
     }
     this.eventManager = new EventManager()
@@ -73,11 +79,9 @@ export class MenuManager {
     TextUtils.setHTML(this.container, '')
     StyleUtils.setClassName(this.container, 'rich:menu-toolbar rich:bg-white rich:border-b rich:border-gray-200')
 
-    // 创建可滚动的工具栏容器
     this.scrollContainer = ContainerUtils.createScrollContainer()
     ElementUtils.appendChild(this.container, this.scrollContainer)
 
-    // 渲染各个菜单组件
     this.renderMenuComponents()
   }
 
@@ -182,23 +186,37 @@ export class MenuManager {
       this.renderDivider()
     }
 
-    // 媒体菜单
+    // 媒体菜单（图片 + 链接）
     if (this.options.showMedia) {
-      // 媒体菜单容器（合并链接和图片）
       const mediaContainer = ContainerUtils.createContainer({ className: 'rich:flex rich:items-center rich:gap-1' })
-      
-      // 链接菜单
       const linkMenu = new LinkMenu(mediaContainer, this.editor, this.eventManager, this.editorRoot)
       this.menuComponents.push(linkMenu)
-      
-      // 图片菜单
       const imageMenu = new ImageMenu(mediaContainer, this.editor, this.eventManager, this.editorRoot, {
         onImageUpload: this.options.onImageUpload
       })
       this.menuComponents.push(imageMenu)
-      
       this.menuContainers.set('media', mediaContainer)
       ElementUtils.appendChild(this.scrollContainer, mediaContainer)
+      this.renderDivider()
+    }
+
+    // 视频菜单
+    if (this.options.showVideo) {
+      const videoContainer = ContainerUtils.createContainer({ className: 'rich:flex rich:items-center rich:gap-1' })
+      const videoMenu = new VideoMenu(videoContainer, this.editor, this.eventManager, this.editorRoot)
+      this.menuComponents.push(videoMenu)
+      this.menuContainers.set('video', videoContainer)
+      ElementUtils.appendChild(this.scrollContainer, videoContainer)
+      this.renderDivider()
+    }
+
+    // 音频菜单
+    if (this.options.showAudio) {
+      const audioContainer = ContainerUtils.createContainer({ className: 'rich:flex rich:items-center rich:gap-1' })
+      const audioMenu = new AudioMenu(audioContainer, this.editor, this.eventManager, this.editorRoot)
+      this.menuComponents.push(audioMenu)
+      this.menuContainers.set('audio', audioContainer)
+      ElementUtils.appendChild(this.scrollContainer, audioContainer)
       this.renderDivider()
     }
 
@@ -216,7 +234,7 @@ export class MenuManager {
     if (this.options.showEmoji) {
       const emojiContainer = ContainerUtils.createContainer({ className: 'rich:flex rich:items-center rich:gap-1' })
       const emojiMenu = new EmojiMenu(emojiContainer, this.editor, this.eventManager, this.editorRoot, {
-        locale: 'zh_CN' // 默认中文，可以从配置中获取
+        locale: 'zh_CN'
       })
       this.menuComponents.push(emojiMenu)
       this.menuContainers.set('emoji', emojiContainer)
@@ -231,6 +249,16 @@ export class MenuManager {
       this.menuComponents.push(clearFormatMenu)
       ElementUtils.appendChild(this.scrollContainer, clearFormatContainer)
     }
+
+    // 全屏按钮（放在工具栏最右侧，使用独立容器）
+    if (this.options.showFullscreen) {
+      this.renderDivider()
+      const fullscreenContainer = ContainerUtils.createContainer({ className: 'rich:flex rich:items-center rich:gap-1 rich:ml-auto' })
+      const fullscreenMenu = new FullscreenMenu(fullscreenContainer, this.eventManager, this.editorRoot)
+      this.menuComponents.push(fullscreenMenu)
+      this.menuContainers.set('fullscreen', fullscreenContainer)
+      ElementUtils.appendChild(this.scrollContainer, fullscreenContainer)
+    }
   }
 
 
@@ -240,19 +268,14 @@ export class MenuManager {
   }
 
   private setupEditorStateListener(): void {
-    // 监听编辑器状态变化
     const selectionUpdateHandler = () => {
       this.updateMenuVisibility()
     }
-    
     const transactionHandler = () => {
       this.updateMenuVisibility()
     }
-    
     this.editor.on('selectionUpdate', selectionUpdateHandler)
     this.editor.on('transaction', transactionHandler)
-    
-    // 保存清理函数
     this.editorEventCleanup.push(
       () => this.editor.off('selectionUpdate', selectionUpdateHandler),
       () => this.editor.off('transaction', transactionHandler)
@@ -261,13 +284,10 @@ export class MenuManager {
 
   private updateMenuVisibility(): void {
     const isInCodeBlock = this.editor.isActive('codeBlock')
-    
-    // 在代码块中需要禁用的菜单
     const menusToDisableInCodeBlock = [
-      'headings', 'textFormat', 'blockquote', 'lists', 
-      'alignment', 'colors', 'media', 'tables'
+      'headings', 'textFormat', 'blockquote', 'lists',
+      'alignment', 'colors', 'media', 'tables', 'video', 'audio'
     ]
-    
     menusToDisableInCodeBlock.forEach(menuKey => {
       const container = this.menuContainers.get(menuKey)
       if (container) {
@@ -283,11 +303,8 @@ export class MenuManager {
   }
 
   public destroy(): void {
-    // 清理编辑器事件监听器
     this.editorEventCleanup.forEach(cleanup => cleanup())
     this.editorEventCleanup = []
-    
-    // 销毁所有菜单组件
     this.menuComponents.forEach(component => {
       try {
         component.destroy()
@@ -296,17 +313,11 @@ export class MenuManager {
       }
     })
     this.menuComponents = []
-    
-    // 清理所有事件监听器
     this.eventManager.cleanup()
-    
-    // 清理容器内容
     if (this.container) {
       TextUtils.setHTML(this.container, '')
       StyleUtils.clearClasses(this.container)
     }
-    
-    // 清理引用
     this.scrollContainer = null as any
   }
 }
