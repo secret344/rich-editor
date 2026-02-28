@@ -30,11 +30,70 @@
         </label>
       </div>
 
-      <!-- AI 助手提示 -->
-      <div class="flex justify-center mb-4">
-        <p class="text-xs text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2">
-          ✨ AI 助手已启用：选中文本后点击右侧"✨ AI"按钮，或使用快捷键 <kbd class="font-mono bg-white border rounded px-1">Ctrl+Shift+A</kbd> 打开 AI 面板
-        </p>
+      <!-- AI 助手配置面板 -->
+      <div class="mb-4 bg-white border border-indigo-200 rounded-xl shadow-sm overflow-hidden">
+        <!-- 标题行 -->
+        <div class="flex items-center justify-between px-4 py-3 bg-indigo-50 border-b border-indigo-200">
+          <div class="flex items-center gap-2">
+            <span class="text-base">✨</span>
+            <span class="text-sm font-semibold text-indigo-700">AI 助手配置</span>
+            <span
+              :class="[
+                'text-xs px-2 py-0.5 rounded-full font-medium',
+                aiMode === 'ollama'
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-amber-100 text-amber-700'
+              ]"
+            >{{ aiMode === 'ollama' ? 'Ollama 模式' : 'Mock 模式' }}</span>
+          </div>
+          <span class="text-xs text-gray-400">快捷键：<kbd class="font-mono bg-white border rounded px-1">Ctrl+Shift+A</kbd></span>
+        </div>
+
+        <!-- 配置主体 -->
+        <div class="px-4 py-3 flex flex-wrap items-end gap-4">
+          <!-- 模式切换 -->
+          <div class="flex flex-col gap-1 min-w-32">
+            <label class="text-xs font-medium text-gray-500">AI 提供商</label>
+            <select
+              v-model="aiMode"
+              @change="rebuildAIService"
+              class="h-8 px-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            >
+              <option value="ollama">Ollama（本地）</option>
+              <option value="mock">Mock（演示）</option>
+            </select>
+          </div>
+
+          <!-- Ollama 配置 -->
+          <template v-if="aiMode === 'ollama'">
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-gray-500">模型名称</label>
+              <input
+                v-model="ollamaModel"
+                @blur="rebuildAIService"
+                type="text"
+                placeholder="llama3.2"
+                class="h-8 px-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 w-36"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-gray-500">Ollama 地址</label>
+              <input
+                v-model="ollamaBaseUrl"
+                @blur="rebuildAIService"
+                type="text"
+                placeholder="http://localhost:11434"
+                class="h-8 px-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 w-52"
+              />
+            </div>
+          </template>
+
+          <!-- Mock 说明 -->
+          <p v-if="aiMode === 'mock'" class="text-xs text-amber-600 leading-relaxed self-center">
+            Mock 模式仅供演示，不调用真实 AI 服务。<br/>
+            切换到 Ollama 模式可体验真实 AI 功能。
+          </p>
+        </div>
       </div>
       
       <!-- 富文本编辑器 -->
@@ -100,6 +159,7 @@
 <script setup>
 import { ref } from 'vue'
 import VanillaRichTextEditor from './components/editor/VanillaRichTextEditor.vue'
+import { createAIService } from '@my-editor/rich-text-editor'
 
 // 响应式数据
 const content = ref('')
@@ -108,6 +168,80 @@ const editorRef = ref(null)
 const showEditor = ref(true)
 const editorKey = ref(0)
 const notionModeActive = ref(false)
+
+// ─── AI 服务配置 ──────────────────────────────────────────────────────────────
+
+/** AI 提供商模式：'ollama' 使用真实 AI，'mock' 仅用于演示 */
+const aiMode = ref('ollama')
+const ollamaModel = ref('llama3.2')
+const ollamaBaseUrl = ref('http://localhost:11434')
+
+/**
+ * Mock AI 实现（演示用，不依赖任何外部服务）。
+ * 当 aiMode === 'mock' 时作为 onAIAction 使用。
+ */
+async function mockAIAction(actionId, ctx) {
+  await new Promise(r => setTimeout(r, 600))
+  const text = ctx.selectedText || ctx.blockText || '（无内容）'
+  const map = {
+    'improve':     `[优化后] ${text}`,
+    'fix-grammar': `[已修正语法] ${text}`,
+    'summarize':   `[摘要] ${text.slice(0, 40)}…`,
+    'expand':      `${text}\n\n（此处是对上述内容的进一步展开与补充说明。）`,
+    'translate':   `[Translation] ${text}`,
+    'continue':    `${text}\n\n（这是 AI 续写的内容，请在此基础上继续编辑。）`,
+  }
+  if (actionId.startsWith('custom:')) {
+    const prompt = actionId.slice(7)
+    return `[自定义指令 "${prompt}"] ${text}`
+  }
+  return map[actionId] ?? `[${actionId}] ${text}`
+}
+
+/**
+ * 构建 AI 选项。
+ * - 'ollama' 模式：使用 createAIService（基于 LangChain + Ollama）
+ * - 'mock' 模式：使用本地 mock 函数
+ *
+ * createAIService 返回的 execute 方法签名与 AIOptions.onAIAction 完全一致，
+ * 可直接赋值，无需任何适配层。
+ */
+function buildAIOptions() {
+  if (aiMode.value === 'ollama') {
+    const aiService = createAIService({
+      providerConfig: {
+        provider: 'ollama',
+        model: ollamaModel.value || 'llama3.2',
+        baseUrl: ollamaBaseUrl.value || 'http://localhost:11434',
+      },
+      // 可选：覆盖默认系统提示词
+      // systemPrompt: '你是一个专注于技术文档的写作助手……'
+    })
+    return {
+      onAIAction: aiService.execute,
+      promptPlaceholder: '例如：将这段话改写得更正式…',
+    }
+  }
+  // Mock 模式
+  return {
+    onAIAction: mockAIAction,
+    promptPlaceholder: '例如：将这段话改写得更正式… (Mock 模式)',
+  }
+}
+
+const aiOptions = ref(buildAIOptions())
+
+/** 重建 AI 服务并热刷新编辑器 */
+function rebuildAIService() {
+  const savedContent = editorRef.value?.getHTML() || content.value
+  aiOptions.value = buildAIOptions()
+  editorKey.value++
+  setTimeout(() => {
+    if (savedContent && editorRef.value) {
+      editorRef.value.setHTML(savedContent)
+    }
+  }, 50)
+}
 
 // 工具栏配置
 const toolbarOptions = ref({
@@ -161,42 +295,6 @@ const slashCommandOptions = ref({
   includeDefaults: true,
   // 可以添加自定义命令
   items: []
-})
-
-// AI 助手配置
-// onAIAction 是一个 mock 实现，实际使用时替换为真实 AI API 调用
-const aiOptions = ref({
-  includeDefaultActions: true,
-  promptPlaceholder: '例如：将这段话改写得更正式…',
-  onAIAction: async (actionId, ctx) => {
-    // ── Mock AI 响应（演示用）──────────────────────────────────────────────
-    // 在实际项目中，将此处替换为对 OpenAI / 自建 AI 服务的 fetch 调用，例如：
-    //
-    //   const res = await fetch('/api/ai', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ action: actionId, text: ctx.selectedText }),
-    //   })
-    //   const data = await res.json()
-    //   return data.result
-    //
-    await new Promise(r => setTimeout(r, 800)) // 模拟网络延迟
-
-    const text = ctx.selectedText || ctx.blockText || '（无内容）'
-    const map = {
-      'improve':      `[优化后] ${text}`,
-      'fix-grammar':  `[已修正语法] ${text}`,
-      'summarize':    `[摘要] ${text.slice(0, 40)}…`,
-      'expand':       `${text}\n\n（此处是对上述内容的进一步展开与补充说明。）`,
-      'translate':    `[Translation] ${text}`,
-      'continue':     `${text}\n\n（这是 AI 续写的内容，请在此基础上继续编辑。）`,
-    }
-    if (actionId.startsWith('custom:')) {
-      const prompt = actionId.slice(7)
-      return `[自定义指令 "${prompt}"] ${text}`
-    }
-    return map[actionId] ?? `[${actionId}] ${text}`
-  }
 })
 
 const handleFocus = () => {}

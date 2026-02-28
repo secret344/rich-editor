@@ -26,6 +26,16 @@ export { createSlashCommandExtension, getDefaultSlashCommands } from '@/core/ext
 export { createNotionModeExtension } from '@/core/extensions/notion-mode'
 export { createAIExtension, getDefaultAIActions } from '@/core/extensions/ai'
 
+// AI 服务（基于 LangChain，需安装对应 peer deps）
+export { createAIService } from '@/utils/AIService'
+export type {
+  AIService,
+  AIServiceConfig,
+  AIProviderConfig,
+  OllamaProviderConfig,
+  CustomProviderConfig,
+} from '@/utils/AIService'
+
 // 工具类
 export { EventManager } from '@/utils/EventManager'
 export { ShortcutManager } from '@/utils/ShortcutManager'

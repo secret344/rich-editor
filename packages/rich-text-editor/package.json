@@ -67,6 +67,18 @@
     "lodash": "^4.17.21",
     "lowlight": "^3.3.0"
   },
+  "peerDependencies": {
+    "@langchain/core": ">=0.3.0",
+    "@langchain/ollama": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@langchain/core": {
+      "optional": true
+    },
+    "@langchain/ollama": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.13",
     "@types/node": "^24.5.2",
