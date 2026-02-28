@@ -30,17 +30,17 @@ export class ContainerUtils {
   static createScrollContainer(options: ContainerOptions = {}): HTMLElement {
     const container = this.createContainer({
       ...options,
-      className: `rich:flex rich:items-center rich:gap-1 rich:overflow-x-auto rich:scrollbar-thin rich:scrollbar-thumb-gray-300 rich:scrollbar-track-gray-100 ${options.className || ''}`
+      className: `rich:flex rich:items-center rich:gap-0.5 rich:overflow-x-auto rich:scrollbar-thin rich:scrollbar-thumb-gray-200 rich:scrollbar-track-transparent rich:px-1 ${options.className || ''}`
     })
     return container
   }
 
   /**
-   * 创建分隔线
+   * 创建分隔线 — MD3 outline-variant (subtle, 20px tall)
    */
   static createDivider(): HTMLElement {
     const divider = document.createElement('div')
-    divider.className = 'rich:w-px rich:h-6 rich:bg-gray-300 rich:mx-1'
+    divider.className = 'rich:w-px rich:h-5 rich:bg-gray-200 rich:mx-0.5 rich:flex-shrink-0'
     return divider
   }
 

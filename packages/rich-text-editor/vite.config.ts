@@ -42,6 +42,7 @@ export default defineConfig(({ mode }) => {
         ],
         external: [
           "@tiptap/core",
+          "@tiptap/extensions",
           "@tiptap/extension-blockquote",
           "@tiptap/extension-bold",
           "@tiptap/extension-bullet-list",
@@ -81,6 +82,10 @@ export default defineConfig(({ mode }) => {
           "@langchain/core/runnables",
           "@langchain/core/chat_history",
           "@langchain/ollama",
+          // Optional named providers (dynamic-imported at runtime)
+          "@langchain/openai",
+          "@langchain/anthropic",
+          "@langchain/google-genai",
         ],
       },
     },

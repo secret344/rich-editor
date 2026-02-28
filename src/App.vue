@@ -40,19 +40,19 @@
             <span
               :class="[
                 'text-xs px-2 py-0.5 rounded-full font-medium',
-                aiMode === 'ollama'
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-amber-100 text-amber-700'
+                aiMode === 'mock'
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-green-100 text-green-700'
               ]"
-            >{{ aiMode === 'ollama' ? 'Ollama 模式' : 'Mock 模式' }}</span>
+            >{{ AI_PROVIDER_LABELS[aiMode] ?? aiMode }}</span>
           </div>
           <span class="text-xs text-gray-400">快捷键：<kbd class="font-mono bg-white border rounded px-1">Ctrl+Shift+A</kbd></span>
         </div>
 
         <!-- 配置主体 -->
         <div class="px-4 py-3 flex flex-wrap items-end gap-4">
-          <!-- 模式切换 -->
-          <div class="flex flex-col gap-1 min-w-32">
+          <!-- 提供商选择 -->
+          <div class="flex flex-col gap-1 min-w-36">
             <label class="text-xs font-medium text-gray-500">AI 提供商</label>
             <select
               v-model="aiMode"
@@ -60,6 +60,9 @@
               class="h-8 px-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
             >
               <option value="ollama">Ollama（本地）</option>
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic Claude</option>
+              <option value="google">Google AI (Gemini)</option>
               <option value="mock">Mock（演示）</option>
             </select>
           </div>
@@ -67,7 +70,7 @@
           <!-- Ollama 配置 -->
           <template v-if="aiMode === 'ollama'">
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-500">模型名称</label>
+              <label class="text-xs font-medium text-gray-500">模型</label>
               <input
                 v-model="ollamaModel"
                 @blur="rebuildAIService"
@@ -77,7 +80,7 @@
               />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-500">Ollama 地址</label>
+              <label class="text-xs font-medium text-gray-500">服务地址</label>
               <input
                 v-model="ollamaBaseUrl"
                 @blur="rebuildAIService"
@@ -88,10 +91,92 @@
             </div>
           </template>
 
+          <!-- OpenAI 配置 -->
+          <template v-if="aiMode === 'openai'">
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-gray-500">模型</label>
+              <input
+                v-model="openaiModel"
+                @blur="rebuildAIService"
+                type="text"
+                placeholder="gpt-4o-mini"
+                class="h-8 px-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 w-36"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-gray-500">API Key</label>
+              <input
+                v-model="openaiApiKey"
+                @blur="rebuildAIService"
+                type="password"
+                placeholder="sk-..."
+                class="h-8 px-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 w-52"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-gray-500">Base URL（可选）</label>
+              <input
+                v-model="openaiBaseUrl"
+                @blur="rebuildAIService"
+                type="text"
+                placeholder="https://api.openai.com/v1"
+                class="h-8 px-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 w-60"
+              />
+            </div>
+          </template>
+
+          <!-- Anthropic 配置 -->
+          <template v-if="aiMode === 'anthropic'">
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-gray-500">模型</label>
+              <input
+                v-model="anthropicModel"
+                @blur="rebuildAIService"
+                type="text"
+                placeholder="claude-3-5-haiku-latest"
+                class="h-8 px-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 w-52"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-gray-500">API Key</label>
+              <input
+                v-model="anthropicApiKey"
+                @blur="rebuildAIService"
+                type="password"
+                placeholder="sk-ant-..."
+                class="h-8 px-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 w-52"
+              />
+            </div>
+          </template>
+
+          <!-- Google AI 配置 -->
+          <template v-if="aiMode === 'google'">
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-gray-500">模型</label>
+              <input
+                v-model="googleModel"
+                @blur="rebuildAIService"
+                type="text"
+                placeholder="gemini-2.0-flash"
+                class="h-8 px-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 w-44"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-gray-500">API Key</label>
+              <input
+                v-model="googleApiKey"
+                @blur="rebuildAIService"
+                type="password"
+                placeholder="AIza..."
+                class="h-8 px-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 w-52"
+              />
+            </div>
+          </template>
+
           <!-- Mock 说明 -->
           <p v-if="aiMode === 'mock'" class="text-xs text-amber-600 leading-relaxed self-center">
             Mock 模式仅供演示，不调用真实 AI 服务。<br/>
-            切换到 Ollama 模式可体验真实 AI 功能。
+            切换到其他提供商可体验真实 AI 功能。
           </p>
         </div>
       </div>
@@ -171,14 +256,37 @@ const notionModeActive = ref(false)
 
 // ─── AI 服务配置 ──────────────────────────────────────────────────────────────
 
-/** AI 提供商模式：'ollama' 使用真实 AI，'mock' 仅用于演示 */
+/** 提供商标签映射 */
+const AI_PROVIDER_LABELS = {
+  ollama: 'Ollama 本地',
+  openai: 'OpenAI',
+  anthropic: 'Anthropic',
+  google: 'Google AI',
+  mock: 'Mock 演示',
+}
+
+/** 当前选择的提供商 */
 const aiMode = ref('ollama')
+
+// Ollama
 const ollamaModel = ref('llama3.2')
 const ollamaBaseUrl = ref('http://localhost:11434')
 
+// OpenAI
+const openaiModel = ref('gpt-4o-mini')
+const openaiApiKey = ref('')
+const openaiBaseUrl = ref('')
+
+// Anthropic
+const anthropicModel = ref('claude-3-5-haiku-latest')
+const anthropicApiKey = ref('')
+
+// Google AI
+const googleModel = ref('gemini-2.0-flash')
+const googleApiKey = ref('')
+
 /**
  * Mock AI 实现（演示用，不依赖任何外部服务）。
- * 当 aiMode === 'mock' 时作为 onAIAction 使用。
  */
 async function mockAIAction(actionId, ctx) {
   await new Promise(r => setTimeout(r, 600))
@@ -192,36 +300,65 @@ async function mockAIAction(actionId, ctx) {
     'continue':    `${text}\n\n（这是 AI 续写的内容，请在此基础上继续编辑。）`,
   }
   if (actionId.startsWith('custom:')) {
-    const prompt = actionId.slice(7)
-    return `[自定义指令 "${prompt}"] ${text}`
+    return `[自定义指令 "${actionId.slice(7)}"] ${text}`
   }
   return map[actionId] ?? `[${actionId}] ${text}`
 }
 
 /**
  * 构建 AI 选项。
- * - 'ollama' 模式：使用 createAIService（基于 LangChain + Ollama）
- * - 'mock' 模式：使用本地 mock 函数
- *
  * createAIService 返回的 execute 方法签名与 AIOptions.onAIAction 完全一致，
  * 可直接赋值，无需任何适配层。
  */
 function buildAIOptions() {
-  if (aiMode.value === 'ollama') {
+  const mode = aiMode.value
+
+  if (mode === 'ollama') {
     const aiService = createAIService({
       providerConfig: {
         provider: 'ollama',
         model: ollamaModel.value || 'llama3.2',
         baseUrl: ollamaBaseUrl.value || 'http://localhost:11434',
       },
-      // 可选：覆盖默认系统提示词
-      // systemPrompt: '你是一个专注于技术文档的写作助手……'
     })
-    return {
-      onAIAction: aiService.execute,
-      promptPlaceholder: '例如：将这段话改写得更正式…',
-    }
+    return { onAIAction: aiService.execute, promptPlaceholder: '例如：将这段话改写得更正式…' }
   }
+
+  if (mode === 'openai') {
+    const aiService = createAIService({
+      providerConfig: {
+        provider: 'openai',
+        model: openaiModel.value || 'gpt-4o-mini',
+        ...(openaiApiKey.value && { apiKey: openaiApiKey.value }),
+        ...(openaiBaseUrl.value && { baseURL: openaiBaseUrl.value }),
+      },
+    })
+    return { onAIAction: aiService.execute, promptPlaceholder: '例如：将这段话改写得更正式…' }
+  }
+
+  if (mode === 'anthropic') {
+    const aiService = createAIService({
+      providerConfig: {
+        provider: 'anthropic',
+        model: anthropicModel.value || 'claude-3-5-haiku-latest',
+        ...(anthropicApiKey.value && { apiKey: anthropicApiKey.value }),
+        maxTokens: 2048,
+      },
+    })
+    return { onAIAction: aiService.execute, promptPlaceholder: '例如：将这段话改写得更正式…' }
+  }
+
+  if (mode === 'google') {
+    const aiService = createAIService({
+      providerConfig: {
+        provider: 'google',
+        model: googleModel.value || 'gemini-2.0-flash',
+        ...(googleApiKey.value && { apiKey: googleApiKey.value }),
+      },
+    })
+    return { onAIAction: aiService.execute, promptPlaceholder: '例如：将这段话改写得更正式…' }
+  }
+
   // Mock 模式
   return {
     onAIAction: mockAIAction,

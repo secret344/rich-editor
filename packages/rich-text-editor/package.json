@@ -29,6 +29,7 @@
   "dependencies": {
     "@floating-ui/dom": "^1.7.4",
     "@tiptap/core": "^3.4.1",
+    "@tiptap/extensions": "^3.20.0",
     "@tiptap/extension-blockquote": "^3.4.1",
     "@tiptap/extension-bold": "^3.4.1",
     "@tiptap/extension-bullet-list": "^3.4.1",
@@ -76,6 +77,15 @@
       "optional": true
     },
     "@langchain/ollama": {
+      "optional": true
+    },
+    "@langchain/openai": {
+      "optional": true
+    },
+    "@langchain/anthropic": {
+      "optional": true
+    },
+    "@langchain/google-genai": {
       "optional": true
     }
   },

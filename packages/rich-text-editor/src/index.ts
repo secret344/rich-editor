@@ -32,7 +32,11 @@ export type {
   AIService,
   AIServiceConfig,
   AIProviderConfig,
+  BuiltInActionId,
   OllamaProviderConfig,
+  OpenAIProviderConfig,
+  AnthropicProviderConfig,
+  GoogleAIProviderConfig,
   CustomProviderConfig,
 } from '@/utils/AIService'
 

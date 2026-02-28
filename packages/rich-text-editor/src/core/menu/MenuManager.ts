@@ -77,7 +77,8 @@ export class MenuManager {
 
   private render(): void {
     TextUtils.setHTML(this.container, '')
-    StyleUtils.setClassName(this.container, 'rich:menu-toolbar rich:bg-white rich:border-b rich:border-gray-200')
+    // MD3 toolbar: surface background, bottom divider, min-height 48px
+    StyleUtils.setClassName(this.container, 'rich:menu-toolbar rich:bg-white rich:border-b rich:border-gray-200 rich:min-h-12')
 
     this.scrollContainer = ContainerUtils.createScrollContainer()
     ElementUtils.appendChild(this.container, this.scrollContainer)
