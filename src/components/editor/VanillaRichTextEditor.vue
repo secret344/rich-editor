@@ -47,6 +47,10 @@ const props = defineProps({
   notionModeOptions: {
     type: Object,
     default: undefined
+  },
+  aiOptions: {
+    type: Object,
+    default: undefined
   }
 })
 
@@ -73,6 +77,7 @@ const initEditor = () => {
     slashCommandOptions: props.slashCommandOptions,
     notionMode: props.notionMode,
     notionModeOptions: props.notionModeOptions,
+    aiOptions: props.aiOptions,
     onUpdate: (content) => {
       emit('update:modelValue', content)
     },

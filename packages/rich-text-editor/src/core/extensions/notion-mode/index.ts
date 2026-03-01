@@ -10,10 +10,16 @@ import { NotionContextMenu } from './NotionContextMenu'
 import type { Editor } from '@tiptap/core'
 import type { EditorView } from '@tiptap/pm/view'
 import type { Node as PMNode } from '@tiptap/pm/model'
+import type { AIOptions } from '@/core/extensions/ai'
 
 export interface NotionModeOptions {
-  /** 预留扩展选项 */
-  _placeholder?: never
+  /**
+   * AI 配置（可选）。
+   * 如果提供，则在每个块的上下文菜单底部追加"AI 助手"入口，
+   * 点击后选中该块并打开 AI 面板。
+   * 同时请确保已注册 createAIExtension(aiOptions)。
+   */
+  aiOptions?: AIOptions
 }
 
 const NOTION_MODE_KEY = new PluginKey('notionMode')
@@ -56,11 +62,11 @@ class NotionFloatingMenuView {
   private dropTargetPos: number | null = null
   private dropBefore = true
 
-  constructor(view: EditorView, editor: Editor) {
+  constructor(view: EditorView, editor: Editor, options: NotionModeOptions) {
     this.view = view
     this.editor = editor
     this.contextMenu = new NotionContextMenu(editor, this.eventManager, () =>
-      this.hideMenu()
+      this.hideMenu(), options.aiOptions
     )
     this.buildMenu()
     this.bindEvents()
@@ -419,7 +425,7 @@ class NotionFloatingMenuView {
  * 创建 Notion 模式扩展
  * 启用后在编辑器左侧显示浮动操作菜单，支持块拖拽排序
  */
-export function createNotionModeExtension(_options: NotionModeOptions = {}) {
+export function createNotionModeExtension(options: NotionModeOptions = {}) {
   return Extension.create({
     name: 'notionMode',
 
@@ -430,7 +436,7 @@ export function createNotionModeExtension(_options: NotionModeOptions = {}) {
         new Plugin({
           key: NOTION_MODE_KEY,
           view(editorView) {
-            const menuView = new NotionFloatingMenuView(editorView, editor)
+            const menuView = new NotionFloatingMenuView(editorView, editor, options)
             return {
               update(view) {
                 menuView.update(view)

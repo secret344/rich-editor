@@ -16,8 +16,13 @@
     "install:editor": "cd packages/rich-text-editor && npm install"
   },
   "dependencies": {
+    "@langchain/core": "^0.3.0",
+    "@langchain/ollama": "^0.2.0",
     "@my-editor/rich-text-editor": "workspace:*",
     "@tailwindcss/typography": "^0.5.16",
+    "@tiptap/extension-code-block": "^3.20.0",
+    "@tiptap/extension-list": "^3.20.0",
+    "@tiptap/extensions": "^3.20.0",
     "@vitejs/plugin-legacy": "^6.1.1",
     "vue": "^3.5.21"
   },

@@ -11,6 +11,9 @@ export type {
   SlashCommandItem,
   SlashCommandOptions,
   NotionModeOptions,
+  AIOptions,
+  AIContext,
+  AIActionDefinition,
 } from '@/core/RichTextEditor'
 
 // 菜单系统
@@ -21,6 +24,21 @@ export * from '@/core/menu/components'
 export { createMentionExtension } from '@/core/extensions/mention'
 export { createSlashCommandExtension, getDefaultSlashCommands } from '@/core/extensions/slash-command'
 export { createNotionModeExtension } from '@/core/extensions/notion-mode'
+export { createAIExtension, getDefaultAIActions } from '@/core/extensions/ai'
+
+// AI 服务（基于 LangChain，需安装对应 peer deps）
+export { createAIService } from '@/utils/AIService'
+export type {
+  AIService,
+  AIServiceConfig,
+  AIProviderConfig,
+  BuiltInActionId,
+  OllamaProviderConfig,
+  OpenAIProviderConfig,
+  AnthropicProviderConfig,
+  GoogleAIProviderConfig,
+  CustomProviderConfig,
+} from '@/utils/AIService'
 
 // 工具类
 export { EventManager } from '@/utils/EventManager'

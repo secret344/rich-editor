@@ -23,14 +23,22 @@ export interface ButtonInstance {
   destroy: () => void;
 }
 
+// ─── MD3 state class constants ────────────────────────────────────────────────
+// Centralised here so all button variants stay in sync.
+// Active state  → MD3 primary-container fill + on-primary-container text
+const ACTIVE_CLASSES   = ["rich:bg-blue-100", "rich:text-blue-700"] as const;
+const INACTIVE_CLASSES = ["rich:text-gray-700"] as const;
+
 export class ButtonUtils {
   /**
    * 创建图标按钮（简单版本，无状态管理）
+   * MD3 Icon Button: 36×36px, rounded-full, tonal hover
    */
   static createIconButton(options: ButtonOptions): HTMLButtonElement {
     const button = ElementUtils.createElement({
       tagName: "button",
-      className: `rich:inline-flex rich:items-center rich:justify-center rich:w-8 rich:h-8 rich:rounded hover:rich:bg-gray-100 focus:rich:outline-none focus:rich:ring-2 focus:rich:ring-blue-500 focus:rich:ring-offset-1 ${
+      // MD3 icon button: 36px target, rounded, tonal hover, primary focus ring
+      className: `rich:inline-flex rich:items-center rich:justify-center rich:w-9 rich:h-9 rich:rounded-lg rich:text-gray-700 hover:rich:bg-blue-50 focus:rich:outline-none focus:rich:ring-2 focus:rich:ring-blue-500 focus:rich:ring-offset-1 ${
         options.className || ""
       }`,
       id: options.id,
@@ -40,7 +48,6 @@ export class ButtonUtils {
       },
     }) as HTMLButtonElement;
 
-    // 创建图标
     if (options.icon) {
       const iconSpan = ElementUtils.createElement({
         tagName: "span",
@@ -50,7 +57,6 @@ export class ButtonUtils {
       ElementUtils.appendChild(button, iconSpan);
     }
 
-    // 创建标签
     if (options.label) {
       const labelSpan = ElementUtils.createElement({
         tagName: "span",
@@ -64,6 +70,7 @@ export class ButtonUtils {
 
   /**
    * 创建图标按钮（带状态管理）
+   * MD3 Icon Button: 36×36px, rounded-lg, tonal hover, primary-container active
    */
   static createIconButtonWithState(
     options: ButtonStateOptions
@@ -71,7 +78,7 @@ export class ButtonUtils {
     const eventManager = new EventManager();
     const button = ElementUtils.createElement({
       tagName: "button",
-      className: `rich:inline-flex rich:items-center rich:justify-center rich:w-8 rich:h-8 rich:rounded hover:rich:bg-gray-100 focus:rich:outline-none focus:rich:ring-2 focus:rich:ring-blue-500 focus:rich:ring-offset-1 ${
+      className: `rich:inline-flex rich:items-center rich:justify-center rich:w-9 rich:h-9 rich:rounded-lg hover:rich:bg-blue-50 focus:rich:outline-none focus:rich:ring-2 focus:rich:ring-blue-500 focus:rich:ring-offset-1 ${
         options.className || ""
       }`,
       id: options.id,
@@ -81,7 +88,6 @@ export class ButtonUtils {
       },
     }) as HTMLButtonElement;
 
-    // 创建图标
     if (options.icon) {
       const iconSpan = ElementUtils.createElement({
         tagName: "span",
@@ -91,7 +97,6 @@ export class ButtonUtils {
       ElementUtils.appendChild(button, iconSpan);
     }
 
-    // 创建标签
     if (options.label) {
       const labelSpan = ElementUtils.createElement({
         tagName: "span",
@@ -101,31 +106,24 @@ export class ButtonUtils {
       ElementUtils.appendChild(button, labelSpan);
     }
 
-    // 绑定事件
     if (options.onClick) {
       eventManager.addEventListener(button, "click", (event) => {
         options.onClick!(event);
       });
     }
 
-    // 更新状态函数
     const updateState = () => {
       if (options.isActive && options.isActive()) {
-        button.classList.add("rich:bg-blue-100", "rich:text-blue-700");
-        button.classList.remove("rich:text-gray-700");
+        button.classList.add(...ACTIVE_CLASSES);
+        button.classList.remove(...INACTIVE_CLASSES);
       } else {
-        button.classList.remove("rich:bg-blue-100", "rich:text-blue-700");
-        button.classList.add("rich:text-gray-700");
+        button.classList.remove(...ACTIVE_CLASSES);
+        button.classList.add(...INACTIVE_CLASSES);
       }
 
-      if (options.isDisabled && options.isDisabled()) {
-        button.disabled = true;
-      } else {
-        button.disabled = false;
-      }
+      button.disabled = !!(options.isDisabled && options.isDisabled());
     };
 
-    // 初始状态更新
     updateState();
 
     return {
@@ -133,7 +131,6 @@ export class ButtonUtils {
       updateState,
       eventManager,
       destroy: () => {
-        // 清理事件监听器
         eventManager.cleanup();
       },
     };
@@ -141,11 +138,12 @@ export class ButtonUtils {
 
   /**
    * 创建文本按钮（简单版本，无状态管理）
+   * MD3 Text Button: px-3 py-1.5, rounded
    */
   static createTextButton(options: ButtonOptions): HTMLButtonElement {
     const button = ElementUtils.createElement({
       tagName: "button",
-      className: `rich:px-3 rich:py-1 rich:text-sm rich:rounded hover:rich:bg-gray-100 focus:rich:outline-none focus:rich:ring-2 focus:rich:ring-blue-500 focus:rich:ring-offset-1 ${
+      className: `rich:px-3 rich:py-1.5 rich:text-sm rich:rounded-lg rich:text-gray-700 hover:rich:bg-blue-50 focus:rich:outline-none focus:rich:ring-2 focus:rich:ring-blue-500 focus:rich:ring-offset-1 ${
         options.className || ""
       }`,
       id: options.id,
@@ -167,7 +165,7 @@ export class ButtonUtils {
     const eventManager = new EventManager();
     const button = ElementUtils.createElement({
       tagName: "button",
-      className: `rich:px-3 rich:py-1 rich:text-sm rich:rounded hover:rich:bg-gray-100 focus:rich:outline-none focus:rich:ring-2 focus:rich:ring-blue-500 focus:rich:ring-offset-1 ${
+      className: `rich:px-3 rich:py-1.5 rich:text-sm rich:rounded-lg hover:rich:bg-blue-50 focus:rich:outline-none focus:rich:ring-2 focus:rich:ring-blue-500 focus:rich:ring-offset-1 ${
         options.className || ""
       }`,
       id: options.id,
@@ -178,31 +176,24 @@ export class ButtonUtils {
       },
     }) as HTMLButtonElement;
 
-    // 绑定事件
     if (options.onClick) {
       eventManager.addEventListener(button, "click", (event) => {
         options.onClick!(event);
       });
     }
 
-    // 更新状态函数
     const updateState = () => {
       if (options.isActive && options.isActive()) {
-        button.classList.add("rich:bg-blue-100", "rich:text-blue-700");
-        button.classList.remove("rich:text-gray-700");
+        button.classList.add(...ACTIVE_CLASSES);
+        button.classList.remove(...INACTIVE_CLASSES);
       } else {
-        button.classList.remove("rich:bg-blue-100", "rich:text-blue-700");
-        button.classList.add("rich:text-gray-700");
+        button.classList.remove(...ACTIVE_CLASSES);
+        button.classList.add(...INACTIVE_CLASSES);
       }
 
-      if (options.isDisabled && options.isDisabled()) {
-        button.disabled = true;
-      } else {
-        button.disabled = false;
-      }
+      button.disabled = !!(options.isDisabled && options.isDisabled());
     };
 
-    // 初始状态更新
     updateState();
 
     return {
@@ -210,7 +201,6 @@ export class ButtonUtils {
       updateState,
       eventManager,
       destroy: () => {
-        // 清理事件监听器
         eventManager.cleanup();
       },
     };
@@ -218,11 +208,12 @@ export class ButtonUtils {
 
   /**
    * 创建紧凑按钮（简单版本，无状态管理）
+   * MD3 Compact Icon Button: 28px, rounded
    */
   static createCompactButton(options: ButtonOptions): HTMLButtonElement {
     const button = ElementUtils.createElement({
       tagName: "button",
-      className: `rich:inline-flex rich:items-center rich:justify-center rich:w-6 rich:h-6 rich:rounded hover:rich:bg-gray-100 focus:rich:outline-none focus:rich:ring-1 focus:rich:ring-blue-500 rich:text-xs ${
+      className: `rich:inline-flex rich:items-center rich:justify-center rich:w-7 rich:h-7 rich:rounded-lg rich:text-gray-600 hover:rich:bg-blue-50 focus:rich:outline-none focus:rich:ring-1 focus:rich:ring-blue-500 rich:text-xs ${
         options.className || ""
       }`,
       id: options.id,
@@ -244,7 +235,7 @@ export class ButtonUtils {
     const eventManager = new EventManager();
     const button = ElementUtils.createElement({
       tagName: "button",
-      className: `rich:inline-flex rich:items-center rich:justify-center rich:w-6 rich:h-6 rich:rounded hover:rich:bg-gray-100 focus:rich:outline-none focus:rich:ring-1 focus:rich:ring-blue-500 rich:text-xs ${
+      className: `rich:inline-flex rich:items-center rich:justify-center rich:w-7 rich:h-7 rich:rounded-lg hover:rich:bg-blue-50 focus:rich:outline-none focus:rich:ring-1 focus:rich:ring-blue-500 rich:text-xs ${
         options.className || ""
       }`,
       id: options.id,
@@ -255,31 +246,24 @@ export class ButtonUtils {
       },
     }) as HTMLButtonElement;
 
-    // 绑定事件
     if (options.onClick) {
       eventManager.addEventListener(button, "click", (event) => {
         options.onClick!(event);
       });
     }
 
-    // 更新状态函数
     const updateState = () => {
       if (options.isActive && options.isActive()) {
-        button.classList.add("rich:bg-blue-100", "rich:text-blue-700");
-        button.classList.remove("rich:text-gray-700");
+        button.classList.add(...ACTIVE_CLASSES);
+        button.classList.remove(...INACTIVE_CLASSES);
       } else {
-        button.classList.remove("rich:bg-blue-100", "rich:text-blue-700");
-        button.classList.add("rich:text-gray-700");
+        button.classList.remove(...ACTIVE_CLASSES);
+        button.classList.add(...INACTIVE_CLASSES);
       }
 
-      if (options.isDisabled && options.isDisabled()) {
-        button.disabled = true;
-      } else {
-        button.disabled = false;
-      }
+      button.disabled = !!(options.isDisabled && options.isDisabled());
     };
 
-    // 初始状态更新
     updateState();
 
     return {
@@ -287,7 +271,6 @@ export class ButtonUtils {
       updateState,
       eventManager,
       destroy: () => {
-        // 清理事件监听器
         eventManager.cleanup();
       },
     };

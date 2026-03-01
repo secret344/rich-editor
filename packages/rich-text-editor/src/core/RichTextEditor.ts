@@ -50,6 +50,7 @@ import { createMentionExtension, type MentionItem, type MentionOptions } from "@
 import { createSlashCommandExtension, type SlashCommandItem, type SlashCommandOptions } from "@/core/extensions/slash-command";
 import { createNotionModeExtension, type NotionModeOptions } from "@/core/extensions/notion-mode";
 import { createBubbleMenuExtension, type BubbleMenuOptions } from "@/core/extensions/bubble";
+import { createAIExtension, type AIOptions, type AIContext, type AIActionDefinition } from "@/core/extensions/ai";
 
 
 /** 富文本编辑器配置选项 */
@@ -88,6 +89,12 @@ export interface RichTextEditorOptions {
   bubbleMenu?: boolean;
   /** Bubble 菜单扩展配置 */
   bubbleMenuOptions?: BubbleMenuOptions;
+  /**
+   * AI 助手扩展配置（可选）。
+   * 提供后自动注册 AI 扩展，并将 aiOptions 透传给 bubble 菜单和 Notion 上下文菜单。
+   * 用户需实现 onAIAction 回调调用实际的 AI 服务。
+   */
+  aiOptions?: AIOptions;
 }
 
 /** 工具栏配置选项 */
@@ -157,7 +164,7 @@ export interface ToolbarButton {
 }
 
 // Re-export extension types for consumers
-export type { MentionItem, MentionOptions, SlashCommandItem, SlashCommandOptions, NotionModeOptions, BubbleMenuOptions };
+export type { MentionItem, MentionOptions, SlashCommandItem, SlashCommandOptions, NotionModeOptions, BubbleMenuOptions, AIOptions, AIContext, AIActionDefinition };
 
 /**
  * 富文本编辑器主类
@@ -279,12 +286,22 @@ export class RichTextEditor {
     }
 
     if (this.options.notionMode) {
-      extensions.push(createNotionModeExtension(this.options.notionModeOptions || {}));
+      extensions.push(createNotionModeExtension({
+        ...(this.options.notionModeOptions || {}),
+        aiOptions: this.options.aiOptions,
+      }));
       StyleUtils.addClass(this.container, "notion-mode-active");
     }
 
     if (this.options.bubbleMenu !== false) {
-      extensions.push(createBubbleMenuExtension(this.options.bubbleMenuOptions || {}));
+      extensions.push(createBubbleMenuExtension({
+        ...(this.options.bubbleMenuOptions || {}),
+        aiOptions: this.options.aiOptions,
+      }));
+    }
+
+    if (this.options.aiOptions) {
+      extensions.push(createAIExtension(this.options.aiOptions));
     }
 
     this.editor = new Editor({

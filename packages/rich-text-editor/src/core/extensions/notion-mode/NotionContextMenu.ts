@@ -8,6 +8,7 @@
 import { ElementUtils, StyleUtils } from '@/core/dom/utils'
 import { EventManager } from '@/utils/EventManager'
 import type { Editor } from '@tiptap/core'
+import type { AIOptions } from '@/core/extensions/ai'
 import { getTurnIntoItems, getBlockActionItems, type ContextMenuItem } from './menu-items'
 
 /** 菜单面板的 Tailwind 类（深色 bubble 风格） */
@@ -36,12 +37,19 @@ export class NotionContextMenu {
   private editor: Editor
   private eventManager: EventManager
   private onClose: () => void
+  private aiOptions: AIOptions | undefined
   private menuEl: HTMLElement | null = null
 
-  constructor(editor: Editor, eventManager: EventManager, onClose: () => void) {
+  constructor(
+    editor: Editor,
+    eventManager: EventManager,
+    onClose: () => void,
+    aiOptions?: AIOptions
+  ) {
     this.editor = editor
     this.eventManager = eventManager
     this.onClose = onClose
+    this.aiOptions = aiOptions
   }
 
   /** 在指定坐标打开菜单（与当前块绑定） */
@@ -65,6 +73,13 @@ export class NotionContextMenu {
 
     this.appendGroupLabel('操作')
     getBlockActionItems().forEach((item) => this.appendItem(item, blockPos))
+
+    // AI 助手入口 – 仅当启用了 AI 扩展时显示
+    if (this.aiOptions) {
+      this.appendSeparator()
+      this.appendGroupLabel('AI 助手')
+      this.appendAIItem(blockPos)
+    }
 
     document.body.appendChild(this.menuEl)
     this.clampToViewport()
@@ -131,6 +146,53 @@ export class NotionContextMenu {
       this.close()
       this.onClose()
       item.action(this.editor, blockPos)
+    })
+
+    ElementUtils.appendChild(this.menuEl!, row)
+  }
+
+  /**
+   * 追加"AI 助手"入口行
+   * 点击后：选中当前块内容 → 打开 AI 面板
+   */
+  private appendAIItem(blockPos: number): void {
+    const row = ElementUtils.createElement({
+      tagName: 'div',
+      className: ITEM_ROW_CLASS,
+    })
+    const icon = ElementUtils.createElement({
+      tagName: 'span',
+      className: ITEM_ICON_CLASS,
+      textContent: '✨',
+    })
+    const label = ElementUtils.createElement({
+      tagName: 'span',
+      textContent: 'AI 助手',
+    })
+
+    ElementUtils.appendChild(row, icon)
+    ElementUtils.appendChild(row, label)
+
+    this.eventManager.addEventListener(row, 'mousedown', (ev) => {
+      ev.preventDefault()
+      ev.stopPropagation()
+      this.close()
+      this.onClose()
+      // Select the block text and open the AI panel
+      try {
+        const { state } = this.editor
+        const $pos = state.doc.resolve(blockPos + 1)
+        if ($pos.depth >= 1) {
+          const bPos = $pos.before(1)
+          const node = state.doc.nodeAt(bPos)
+          if (node) {
+            const from = bPos + 1
+            const to = bPos + node.nodeSize - 1
+            this.editor.chain().focus().setTextSelection({ from, to }).run()
+          }
+        }
+      } catch { /* ignore */ }
+      this.editor.commands.openAIPanel()
     })
 
     ElementUtils.appendChild(this.menuEl!, row)

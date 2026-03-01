@@ -8,10 +8,16 @@ import { ElementUtils, StyleUtils } from '@/core/dom/utils'
 import { EventManager } from '@/utils/EventManager'
 import type { Editor } from '@tiptap/core'
 import type { EditorView } from '@tiptap/pm/view'
+import type { AIOptions } from '@/core/extensions/ai'
 
 export interface BubbleMenuOptions {
-  /** 预留扩展选项 */
-  _placeholder?: never
+  /**
+   * AI 配置（可选）。
+   * 如果提供，则在 bubble 菜单末尾追加"✨ AI"按钮，
+   * 点击后调用 editor.commands.openAIPanel()。
+   * 同时请确保已注册 createAIExtension(aiOptions)。
+   */
+  aiOptions?: AIOptions
 }
 
 const BUBBLE_MENU_KEY = new PluginKey('bubbleMenu')
@@ -78,13 +84,15 @@ const MENU_GAP = 8
  */
 class BubbleMenuView {
   private editor: Editor
+  private options: BubbleMenuOptions
   private eventManager: EventManager = new EventManager()
   private menuEl!: HTMLElement
   private buttons: Array<{ el: HTMLElement; def: BubbleButton }> = []
   private isMouseDown = false
 
-  constructor(_view: EditorView, editor: Editor) {
+  constructor(_view: EditorView, editor: Editor, options: BubbleMenuOptions) {
     this.editor = editor
+    this.options = options
     this.buildMenu()
     this.bindEvents()
   }
@@ -116,6 +124,27 @@ class BubbleMenuView {
       this.buttons.push({ el: btn, def })
       ElementUtils.appendChild(this.menuEl, btn)
     })
+
+    // AI button – shown only when aiOptions is configured
+    if (this.options.aiOptions) {
+      const sep = ElementUtils.createElement({
+        tagName: 'div',
+        className: 'rich-bubble-sep',
+      })
+      const aiBtn = ElementUtils.createElement({
+        tagName: 'button',
+        className: 'rich-bubble-btn rich-bubble-btn--ai',
+        textContent: '✨ AI',
+        attributes: { title: '打开 AI 助手 (Mod+Shift+A)', type: 'button' },
+      })
+      this.eventManager.addEventListener(aiBtn, 'mousedown', (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        this.editor.commands.openAIPanel()
+      })
+      ElementUtils.appendChild(this.menuEl, sep)
+      ElementUtils.appendChild(this.menuEl, aiBtn)
+    }
 
     document.body.appendChild(this.menuEl)
   }
@@ -193,7 +222,7 @@ class BubbleMenuView {
  * 创建 Bubble 菜单扩展
  * 选中文本后自动在选区附近显示格式化工具栏
  */
-export function createBubbleMenuExtension(_options: BubbleMenuOptions = {}) {
+export function createBubbleMenuExtension(options: BubbleMenuOptions = {}) {
   return Extension.create({
     name: 'bubbleMenu',
 
@@ -204,7 +233,7 @@ export function createBubbleMenuExtension(_options: BubbleMenuOptions = {}) {
         new Plugin({
           key: BUBBLE_MENU_KEY,
           view(editorView) {
-            const menuView = new BubbleMenuView(editorView, editor)
+            const menuView = new BubbleMenuView(editorView, editor, options)
             return {
               update(view) {
                 menuView.update(view)
